@@ -1,0 +1,42 @@
+IMPORT.CHEADER <termios.h>
+IMPORT.CHEADER <unistd.h>
+IMPORT.CHEADER <ctype.h>
+IMPORT.CHEADER "rawmode.h"
+IMPORT "Lua.zu"
+
+C(struct termios*) orig_termios = C(malloc(sizeof(struct termios)))
+
+# rawmode.h: void disableRawMode();
+>>>
+void disableRawMode() {
+  tcsetattr(STDIN_FILENO, TCSAFLUSH, %orig_termios%);
+  free(%orig_termios%);
+}
+<<<
+
+PROC enableRawMode()
+>>>
+  struct termios raw;
+  atexit(disableRawMode);
+
+  tcgetattr(STDIN_FILENO, %orig_termios%);
+
+  raw = *%orig_termios%;
+  raw.c_lflag &= ~(ECHO | ICANON);
+  tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+<<<
+}
+
+FUNC Main() int
+  enableRawMode()
+
+  nat32 char = IO.stdin.readChar()
+
+  WHILE char != IO.eof && char != 'q'
+    IO.print(char)
+    char = IO.stdin.readChar()
+  }
+ 
+  RETURN 0
+}
+
