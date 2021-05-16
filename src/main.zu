@@ -1,0 +1,252 @@
+IMPORT.CHEADER <termios.h>
+IMPORT.CHEADER <unistd.h>
+IMPORT.CHEADER <ctype.h>
+IMPORT.CHEADER <errno.h>
+IMPORT.CHEADER <sys/ioctl.h>
+IMPORT.CHEADER "rawmode.h"
+IMPORT "Lua.zu"
+
+string venci_v = "0.0.1"
+
+PROC die(string s)
+  LOG.fatal(s)
+}
+
+FUNC tcalls(string f, list<string> args = []) string
+  string res = "\x1b["
+  IF args.Size() >= 1
+    int c = 0
+    FOR i IN args
+      IF c == 0
+        res ..= i
+      ELSE
+        res ..= ";" .. i
+      }
+      c++
+    }
+  }
+  res ..= f
+  RETURN res
+}
+
+PROC tcall(string f, list<string> args = [])
+  string res = tcalls(f, args)
+  IO.stdout.write(res)
+}
+
+FUNC getCursorPosition(int &rows, int &cols) status
+  IF IO.stdout.write("\x1b[6n") != OK
+    RETURN FAIL
+  }
+
+  string s = ""
+  WHILE TRUE
+    byte c = IO.stdin.readByte()
+    IF c == IO.eof
+      BREAK
+    }
+    s ..= c.asString()
+    IF c == 'R'
+      BREAK
+    }
+  }
+
+  IF s[0] != '\x1b' || s[1] != '['
+    RETURN FAIL
+  }
+
+  string rw = ""
+  string cl = ""
+  int i     = 0
+  array<nat32> digits = "0123456789".toArray()
+  
+  FOR c IN s.slice(2)
+    int num = digits.find(c)
+    IF num != -1
+      rw ..= num
+    ELSEIF c == ';'
+      BREAK
+    }
+    i++
+  }
+
+  FOR c IN s.slice(i + rw.Size())
+    int num = digits.find(c)
+    IF num != -1
+      cl ..= num
+    ELSEIF c == 'R'
+      BREAK
+    }
+  }
+
+  rows = rw.toInt()
+  cols = cl.toInt()
+
+  RETURN OK
+}
+
+CLASS EditorConfig
+  nat $cx, $cy
+  int $rows, $cols
+  C(struct termios*) $orig_termios
+ 
+  PROC $moveCursor(byte k)
+    SWITCH k.<int>
+      CASE 'h'; $cx--
+      CASE 'l'; $cx++
+      CASE 'k'; $cy--
+      CASE 'j'; $cy++
+    }
+  }
+
+  FUNC $getWindowSize() status
+>>>
+    struct winsize ws;
+<<<
+    IF C(ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0)
+      IF IO.stdout.write("\x1b[999C\x1b[999B") != OK
+        RETURN FAIL
+      }
+      RETURN getCursorPosition(&$rows, &$cols)
+    ELSE
+      $rows = C(ws.ws_row)
+      $cols = C(ws.ws_col)
+      RETURN OK
+    }
+  }
+
+  NEW()
+    $rows = 0
+    $cols = 0
+    $orig_termios = C(malloc(sizeof(struct termios)))
+
+    $cx = 0
+    $cy = 0
+  }
+}
+
+EditorConfig ec = NEW()
+
+# rawmode.h: void disableRawMode();
+>>>
+void disableRawMode() {
+  if(tcsetattr(STDIN_FILENO, TCSAFLUSH, %ec.orig_termios%) == -1)
+    %{die("tcsetattr error")}%;
+  free(%ec.orig_termios%);
+}
+<<<
+
+PROC enableRawMode()
+>>>
+  struct termios raw;
+  atexit(disableRawMode);
+
+  tcgetattr(STDIN_FILENO, %ec.orig_termios%);
+
+  raw = *%ec.orig_termios%;
+  raw.c_iflag &= ~(BRKINT | INPCK | ISTRIP | IXON | ICRNL);
+  raw.c_oflag &= ~(OPOST);
+  raw.c_cflag |= (CS8);
+  raw.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
+
+  raw.c_cc[VMIN] = 0;
+  raw.c_cc[VTIME] = 1;
+  if(tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1)
+    %{die("tcsetattr error")}%;
+<<<
+}
+
+PROC clrscr()
+  tcall("J", ["2"])
+  gotoxy(1, 1)
+}
+
+PROC gotoxy(int x, int y)
+  tcall("H", [y.ToString(), x.ToString()])
+}
+
+FUNC gotoxy_s(int x, int y) string
+  RETURN tcalls("H", [y.ToString(), x.ToString()])
+}
+
+PROC processKeypress()
+  byte c @cref
+  c = readKey()
+  array<nat32> movement = "hjlk".toArray()
+  IF C(*c == CTRL_KEY('q'))
+    clrscr()
+    EXIT 0
+  ELSEIF movement.has(c)
+    ec.moveCursor(c)
+  }
+}
+
+FUNC drawRows() string
+  string ab = ""
+  FOR y IN 0 TO ec.rows - 1
+    IF y == ec.rows / 3
+      string w = "Venci test, version " .. venci_v
+      int padding = (ec.cols - w.Size()) / 2
+      IF padding != 0
+        ab ..= "~"
+        padding--
+      }
+      WHILE padding != 0
+        ab ..= " "
+        padding--
+      }
+      ab ..= w.slice(0, ec.cols)
+    ELSE
+      ab ..= "~"
+    }
+
+    ab ..= "\x1b[K"
+    IF y < ec.rows - 1
+      ab ..= "\r\n"
+    }
+  }
+  RETURN ab
+}
+
+PROC refreshScreen()
+  string ab = ""
+
+  ab ..= tcalls("l", ["?25"])
+  ab ..= gotoxy_s(1, 1)
+  
+  ab ..= drawRows()
+  
+  ab ..= gotoxy_s(ec.cx + 1, ec.cy + 1)
+  ab ..= tcalls("h", ["?25"])
+
+  IO.stdout.write(ab)
+>>> uses(getCstring)
+  write(STDOUT_FILENO, ZgetCstring(%ab%), %ab.Size()%);
+<<<
+}
+
+FUNC readKey() byte
+  int nread @cref
+  byte c    @cref
+  WHILE C((*nread = read(STDIN_FILENO, c, 1)) != 1)
+    IF C(*nread == -1 && errno != EAGAIN)
+      die("read error")
+    }
+  }
+  RETURN c
+}
+
+FUNC Main() int
+  enableRawMode()
+  IF ec.getWindowSize() != OK
+    die("error getting window size")
+  }
+
+  WHILE TRUE
+    refreshScreen()
+    processKeypress()
+  }
+ 
+  RETURN 0
+}
+
