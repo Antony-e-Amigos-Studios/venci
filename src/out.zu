@@ -211,8 +211,25 @@ int*c = &%c%;
   IF C(*c == CTRL_KEY('q'))
     clrscr()
     EXIT 0
-  ELSEIF movement.has(c) || c >= 1000
-    ec.moveCursor(c)
+  ELSE
+    SWITCH c
+      CASE C(PAGE_UP); PROCEED
+      CASE C(PAGE_DOWN)
+        FOR n IN ec.rows TO 0 STEP -1
+          int res = C(*c == PAGE_UP ? UP : DOWN)
+          ec.moveCursor(res)
+        }
+      
+      CASE C(UP); PROCEED
+      CASE C(LEFT); PROCEED
+      CASE C(DOWN); PROCEED
+      CASE C(RIGHT)
+        ec.moveCursor(c)
+      DEFAULT
+        IF movement.has(c)
+          ec.moveCursor(c)
+        }
+    }
   }
 }
 
@@ -254,7 +271,6 @@ PROC refreshScreen()
   ab ..= gotoxy_s(ec.cx + 1, ec.cy + 1)
   ab ..= tcalls("h", ["?25"])
 
-  IO.stdout.write(ab)
 >>> uses(getCstring)
   write(STDOUT_FILENO, ZgetCstring(%ab%), %ab.Size()%);
 <<<
@@ -279,18 +295,35 @@ int*res = &%res%;
     }
   }
 
-  IF c == 0x1b
+  IF C(*c == '\x1b')
 >>>
     char seq[3];
 <<<
     IF C(read(STDIN_FILENO, &seq[0], 1) != 1)
-      RETURN C('\x1b')
+      RETURN C('\x1b') # need to use C('\x1b')
+                       # because zimbu char literals
+                       # are kinda broken
     }
     IF C(read(STDIN_FILENO, &seq[1], 1) != 1)
       RETURN C('\x1b')
     }
 
     IF C(seq[0] == '[')
+      IF C(seq[1] >= '0' && seq[1] <= '9')
+        IF C(read(STDIN_FILENO, &seq[2], 1) != 1)
+          RETURN C('\x1b')
+        }
+        IF C(seq[2] == '~')
+>>>
+          switch (seq[1]) {
+            case '5': *res = PAGE_UP; break;
+            case '6': *res = PAGE_DOWN; break;
+            default: *res = '\x1b';
+          }
+<<<
+          RETURN res
+        }
+      }
 >>>
       switch (seq[1]) {
         case 'A': *res = UP; break;

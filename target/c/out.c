@@ -2127,7 +2127,7 @@ Tcpos ZcTbl84899[]={
 };
 Tc Y9QD[]="Main()";
 Tcpos ZcTbl5270[]={
-{312,3},
+{345,3},
 {1,3},
 {2,5},
 {5,3},
@@ -2193,7 +2193,7 @@ Tcpos ZcTbl56087[]={
 };
 Tc YCgG[]="drawRows()";
 Tcpos ZcTbl31458[]={
-{220,15},
+{237,15},
 {1,3},
 {2,5},
 {3,41},
@@ -2267,12 +2267,18 @@ Tcpos ZcTbl40266[]={
 {5,3},
 {6,5},
 {7,10},
-{8,26},
 {9,5},
+{12,9},
+{13,22},
+{14,11},
+{12,9},
+{21,9},
+{23,9},
+{24,11},
 };
 Tc YRKs[]="readKey()";
 Tcpos ZcTbl79390[]={
-{265,4},
+{281,4},
 {4,4},
 {8,4},
 {11,3},
@@ -2283,23 +2289,28 @@ Tcpos ZcTbl79390[]={
 {18,4},
 {21,5},
 {22,15},
-{24,5},
-{25,15},
-{28,5},
-{29,4},
-{40,9},
-{43,10},
+{26,5},
+{27,15},
+{30,5},
+{31,7},
+{32,9},
+{33,19},
+{35,9},
+{36,4},
+{43,18},
+{46,4},
+{57,9},
+{60,10},
 };
 Tc YClS[]="refreshScreen()";
 Tcpos ZcTbl56800[]={
-{247,15},
+{264,15},
 {2,6},
 {3,6},
 {5,6},
 {7,6},
 {8,6},
-{10,3},
-{11,4},
+{10,4},
 };
 Tc YR5F[]="tcall()";
 Tcpos ZcTbl56509[]={
@@ -8291,13 +8302,50 @@ int*c = &Vc;
   sf.pos=4026605;
   Zexit(NULL, 0);
  }
- else {
- sf.pos=4026606;
- if (((ZArrayFind((Ta*)Vmovement, (Tz)(Ti)Vc)>= 0) || (Vc >= 1000)))
+ else
  {
-  sf.pos=4026607;
-  Yeai(Vec, Vc);
- }
+  sf.pos=4026606;
+  switch (Vc)
+  {
+  case PAGE_UP:
+  case PAGE_DOWN:
+   {
+    sf.pos=4026607;
+    {
+     Ti Vn;
+     Tfr Zf4;
+     ZforRangeNew(Vec->Vrows, 0, 0, -1, &Zf4);
+     for (ZforRangeGetInt(&Zf4, &Vn); ZforRangeContInt(&Zf4); ZforRangeNextInt(&Zf4, &Vn)) {
+     Ti Vres;
+     sf.pos=4026608;
+     Vres = *c == PAGE_UP ? UP : DOWN;
+     sf.pos=4026609;
+     Yeai(Vec, Vres);
+     sf.pos=4026610;
+     }
+    }
+     break;
+   }
+  case UP:
+  case LEFT:
+  case DOWN:
+  case RIGHT:
+   {
+    sf.pos=4026611;
+    Yeai(Vec, Vc);
+     break;
+   }
+  default:
+   {
+    sf.pos=4026612;
+    if ((ZArrayFind((Ta*)Vmovement, (Tz)(Ti)Vc)>= 0))
+    {
+     sf.pos=4026613;
+     Yeai(Vec, Vc);
+    }
+     break;
+   }
+  }
  }
  topFrame = sf.prev;
  return;
@@ -8387,8 +8435,6 @@ void Y9Dc() {
  sf.pos=5680005;
  Vab =  ZcS(Vab, Ygor(((Tc*)&YPa), (t0 = ZnewList((Tt*)&string__T, 1), ZLap((Tl*)t0, (Tz)(void*)((Tc*)&YamK)))));
  sf.pos=5680006;
- ((Ts (*)(void*, Tc*))(Yb0q.table[1]))(Yb0q.ptr, Vab);
- sf.pos=5680007;
   write(STDOUT_FILENO, ZgetCstring(Vab), ZstringSize(Vab));
  topFrame = sf.prev;
  return;
@@ -8424,7 +8470,7 @@ int*res = &Vres;
  sf.pos=7939006;
  }
  sf.pos=7939007;
- if ((Vc == 27))
+ if (*c == '\x1b')
  {
   sf.pos=7939008;
     char seq[3];
@@ -8448,6 +8494,34 @@ int*res = &Vres;
   if (seq[0] == '[')
   {
    sf.pos=7939014;
+   if (seq[1] >= '0' && seq[1] <= '9')
+   {
+    sf.pos=7939015;
+    if (read(STDIN_FILENO, &seq[2], 1) != 1)
+    {
+     sf.pos=7939016;
+     r = '\x1b';
+     rt = 1;
+     goto Yatd;
+    }
+    sf.pos=7939017;
+    if (seq[2] == '~')
+    {
+     sf.pos=7939018;
+          switch (seq[1]) {
+            case '5': *res = PAGE_UP; break;
+            case '6': *res = PAGE_DOWN; break;
+            default: *res = '\x1b';
+          }
+     sf.pos=7939019;
+     r = Vres;
+     rt = 1;
+     goto Yatd;
+    }
+Yatd:
+    if (rt) goto Yq1Z;
+   }
+   sf.pos=7939020;
       switch (seq[1]) {
         case 'A': *res = UP; break;
         case 'B': *res = DOWN; break;
@@ -8455,16 +8529,18 @@ int*res = &Vres;
         case 'D': *res = LEFT; break;
         default:  *res = '\x1b';
       }
+Yq1Z:
+   if (rt) goto YNjP;
   }
 YNjP:
   if (rt) goto Y0Pr;
  }
  else
  {
-  sf.pos=7939015;
+  sf.pos=7939021;
   Vres = Vc;
  }
- sf.pos=7939016;
+ sf.pos=7939022;
  r = Vres;
 Y0Pr:
  topFrame = sf.prev;
