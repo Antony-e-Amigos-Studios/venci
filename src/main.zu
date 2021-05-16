@@ -6,6 +6,9 @@ IMPORT.CHEADER <sys/ioctl.h>
 IMPORT.CHEADER "rawmode.h"
 IMPORT "Lua.zu"
 
+
+# NOTE: ESC -> 0x1b
+
 string venci_v = "0.0.1"
 
 PROC die(string s)
@@ -88,14 +91,42 @@ FUNC getCursorPosition(int &rows, int &cols) status
 CLASS EditorConfig
   nat $cx, $cy
   int $rows, $cols
+  byte $mode
   C(struct termios*) $orig_termios
  
-  PROC $moveCursor(byte k)
-    SWITCH k.<int>
-      CASE 'h'; $cx--
-      CASE 'l'; $cx++
-      CASE 'k'; $cy--
-      CASE 'j'; $cy++
+  PROC $moveCursor(int k)
+    int key
+    IF $mode == 'N'
+      dict<int, int> mapper = ['h': C(LEFT),
+                               'l': C(RIGHT),
+                               'j': C(DOWN),
+                               'k': C(UP)]
+      IF mapper.has(k)
+        key = mapper[k]
+      ELSE
+        key = k
+      }
+    ELSE
+      key = k
+    }
+
+    SWITCH key
+      CASE C(LEFT)
+        IF $cx != 0
+          $cx--
+        }
+      CASE C(RIGHT)
+        IF $cx != $cols - 1
+          $cx++
+        }
+      CASE C(UP)
+        IF $cy != 0
+          $cy--
+        }
+      CASE C(DOWN)
+        IF $cy != $rows - 1
+          $cy++
+        }
     }
   }
 
@@ -116,6 +147,7 @@ CLASS EditorConfig
   }
 
   NEW()
+    $mode = C('N')
     $rows = 0
     $cols = 0
     $orig_termios = C(malloc(sizeof(struct termios)))
@@ -170,13 +202,13 @@ FUNC gotoxy_s(int x, int y) string
 }
 
 PROC processKeypress()
-  byte c @cref
+  int c @cref
   c = readKey()
   array<nat32> movement = "hjlk".toArray()
   IF C(*c == CTRL_KEY('q'))
     clrscr()
     EXIT 0
-  ELSEIF movement.has(c)
+  ELSEIF movement.has(c) || c >= 1000
     ec.moveCursor(c)
   }
 }
@@ -225,15 +257,43 @@ PROC refreshScreen()
 <<<
 }
 
-FUNC readKey() byte
+FUNC readKey() int
   int nread @cref
   byte c    @cref
+  int res   @cref
   WHILE C((*nread = read(STDIN_FILENO, c, 1)) != 1)
     IF C(*nread == -1 && errno != EAGAIN)
       die("read error")
     }
   }
-  RETURN c
+
+  IF c == 0x1b
+>>>
+    char seq[3];
+<<<
+    IF C(read(STDIN_FILENO, &seq[0], 1) != 1)
+      RETURN C('\x1b')
+    }
+    IF C(read(STDIN_FILENO, &seq[1], 1) != 1)
+      RETURN C('\x1b')
+    }
+
+    IF C(seq[0] == '[')
+>>>
+      switch (seq[1]) {
+        case 'A': *res = UP; break;
+        case 'B': *res = DOWN; break;
+        case 'C': *res = RIGHT; break;
+        case 'D': *res = LEFT; break;
+        default:  *res = '\x1b';
+      }
+<<<
+    }
+  ELSE
+    res = c
+  }
+
+  RETURN res
 }
 
 FUNC Main() int

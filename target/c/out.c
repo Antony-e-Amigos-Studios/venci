@@ -578,6 +578,7 @@ struct YQfU__S {
  Tu Vcy;
  Ti Vrows;
  Ti Vcols;
+ Tc Vmode;
  struct termios* Vorig_termios;
 };
 extern Tto YQfU__T;
@@ -896,7 +897,7 @@ void Ywpw(Tc *Af, Tl *Aargs); /* tcall */
 Ts YP9u(Ti *Rrows, Ti *Rcols); /* getCursorPosition */
 Zs6 YQh8 = {"\004\033[6n\000"};
 Zs12 Y_eV = {"\0120123456789\000"};
-void Yeai(YQfU *t, Tc Ak); /* CEditorConfig.moveCursor */
+void Yeai(YQfU *t, Ti Ak); /* CEditorConfig.moveCursor */
 Ts YLNB(YQfU *t); /* CEditorConfig.getWindowSize */
 Zs14 Yd1d = {"\014\033[999C\033[999B\000"};
 YQfU *Yek3(YQfU *t); /* CEditorConfig.NEW */
@@ -922,7 +923,7 @@ void Y9Dc(); /* refreshScreen */
 Zs3 YTa = {"\001l\000"};
 Zs5 YamK = {"\003?25\000"};
 Zs3 YPa = {"\001h\000"};
-Tc Y8Q5(); /* readKey */
+Ti Y8Q5(); /* readKey */
 Zs12 Y9Ri = {"\012read error\000"};
 Zs27 Yt7s = {"\031error getting window size\000"};
 
@@ -1137,7 +1138,7 @@ Tc YHVP[]="/home/tsuki/.zimbu/lib/ZModule.zu";
 Tc Ya_D[]="src/out.zu";
 Tc Yaa[]="";
 Tcpos ZcTbl0[]={
-{128,14},
+{160,14},
 };
 Tc Y_VO[]="ARG.Bool.NEW/1()";
 Tcpos ZcTbl3273[]={
@@ -1965,16 +1966,17 @@ Tcpos ZcTbl52386[]={
 };
 Tc YTMY[]="EditorConfig.NEW()";
 Tcpos ZcTbl14774[]={
-{118,3},
+{149,3},
 {1,11},
 {2,11},
-{3,19},
-{5,9},
+{3,11},
+{4,19},
 {6,9},
+{7,9},
 };
 Tc YM6u[]="EditorConfig.getWindowSize()";
 Tcpos ZcTbl70635[]={
-{102,9},
+{133,9},
 {1,4},
 {4,5},
 {5,7},
@@ -1986,12 +1988,22 @@ Tcpos ZcTbl70635[]={
 };
 Tc YnTk[]="EditorConfig.moveCursor()";
 Tcpos ZcTbl15045[]={
-{93,9},
-{1,5},
-{2,20},
-{3,20},
-{4,20},
-{5,20},
+{97,9},
+{2,5},
+{3,35},
+{7,7},
+{8,13},
+{10,13},
+{13,11},
+{16,5},
+{18,9},
+{19,14},
+{22,9},
+{23,14},
+{26,9},
+{27,14},
+{30,9},
+{31,14},
 };
 Tc Ys1a[]="IO";
 Tcpos ZcTbl7452[]={
@@ -2115,7 +2127,7 @@ Tcpos ZcTbl84899[]={
 };
 Tc Y9QD[]="Main()";
 Tcpos ZcTbl5270[]={
-{249,3},
+{312,3},
 {1,3},
 {2,5},
 {5,3},
@@ -2172,16 +2184,16 @@ Tcpos ZcTbl18187[]={
 };
 Tc YrXP[]="clrscr()";
 Tcpos ZcTbl94330[]={
-{160,3},
+{192,3},
 {1,3},
 };
 Tc YXBg[]="die()";
 Tcpos ZcTbl56087[]={
-{12,3},
+{15,3},
 };
 Tc YCgG[]="drawRows()";
 Tcpos ZcTbl31458[]={
-{188,15},
+{220,15},
 {1,3},
 {2,5},
 {3,41},
@@ -2203,11 +2215,11 @@ Tcpos ZcTbl31458[]={
 };
 Tc YdWL[]="enableRawMode()";
 Tcpos ZcTbl25411[]={
-{140,4},
+{172,4},
 };
 Tc YetL[]="getCursorPosition()";
 Tcpos ZcTbl15576[]={
-{38,3},
+{41,3},
 {1,12},
 {4,14},
 {5,3},
@@ -2241,36 +2253,46 @@ Tcpos ZcTbl15576[]={
 };
 Tc YA77[]="gotoxy()";
 Tcpos ZcTbl56063[]={
-{165,3},
+{197,3},
 };
 Tc YCn_[]="gotoxy_s()";
 Tcpos ZcTbl14477[]={
-{169,10},
+{201,10},
 };
 Tc YQ8H[]="processKeypress()";
 Tcpos ZcTbl40266[]={
-{174,4},
+{206,4},
 {3,5},
 {4,34},
 {5,3},
 {6,5},
 {7,10},
-{8,19},
+{8,26},
 {9,5},
 };
 Tc YRKs[]="readKey()";
 Tcpos ZcTbl79390[]={
-{233,4},
+{265,4},
 {4,4},
-{7,3},
-{8,5},
-{9,7},
-{7,3},
-{12,10},
+{8,4},
+{11,3},
+{12,5},
+{13,7},
+{11,3},
+{17,3},
+{18,4},
+{21,5},
+{22,15},
+{24,5},
+{25,15},
+{28,5},
+{29,4},
+{40,9},
+{43,10},
 };
 Tc YClS[]="refreshScreen()";
 Tcpos ZcTbl56800[]={
-{215,15},
+{247,15},
 {2,6},
 {3,6},
 {5,6},
@@ -2281,12 +2303,12 @@ Tcpos ZcTbl56800[]={
 };
 Tc YR5F[]="tcall()";
 Tcpos ZcTbl56509[]={
-{33,16},
+{36,16},
 {1,3},
 };
 Tc YcA1[]="tcalls()";
 Tcpos ZcTbl72424[]={
-{16,16},
+{19,16},
 {1,3},
 {2,13},
 {3,5},
@@ -3846,6 +3868,16 @@ Ti *ZDictGetIntP(Td *d, Tz key) {
   di = ZDictFind(d, key);
  }
  return &di->item.ival;
+}
+
+Ti ZDictGetInt(Td *d, Tz key) {
+ CDictItem *di = ZDictFind(d, key);
+ if (di != NULL) {
+  return di->item.ival;
+ }
+ if (d->keyType->nr >= 100) ZthrowStringKeyNotFound(key, Zstr(""));
+ ZthrowIntKeyNotFound(key, Zstr(""));
+ return 0;
 }
 
 Tb ZDictHas(Td *d, Tz key) {
@@ -8024,8 +8056,11 @@ Y9eX:
  topFrame = sf.prev;
  return r;
 }
-void Yeai(YQfU *t, Tc Ak) {
+void Yeai(YQfU *t, Ti Ak) {
+ Ti Vkey;
  Zsf sf;
+ Td *Vmapper = NULL;
+ Td *t0 = NULL;
  sf.prev = topFrame;
  sf.pos = 0;
  topFrame = &sf;
@@ -8033,31 +8068,70 @@ void Yeai(YQfU *t, Tc Ak) {
   sf.pos=1504500;
   ZthrowThisNil();
  }
+ Vkey = 0;
  sf.pos=1504501;
- switch (Ak)
+ if ((t->Vmode == 78))
  {
- case 104:
-  {
-   sf.pos=1504502;
-   --(t->Vcx);
-    break;
-  }
- case 108:
-  {
-   sf.pos=1504503;
-   ++(t->Vcx);
-    break;
-  }
- case 107:
+  sf.pos=1504502;
+  Vmapper = (t0 = ZDictAdd(0, ZDictAdd(0, ZDictAdd(0, ZDictAdd(0, ZnewDict((Tt*)&int__T, (Tt*)&int__T, 0), (Tz)(Ti)104, (Tz)(Ti)LEFT), (Tz)(Ti)108, (Tz)(Ti)RIGHT), (Tz)(Ti)106, (Tz)(Ti)DOWN), (Tz)(Ti)107, (Tz)(Ti)UP));
+  sf.pos=1504503;
+  if (ZDictHas(Vmapper, (Tz)(Ti)Ak))
   {
    sf.pos=1504504;
-   --(t->Vcy);
-    break;
+   Vkey = ZDictGetInt(Vmapper, (Tz)(Ti)Ak);
   }
- case 106:
+  else
   {
    sf.pos=1504505;
-   ++(t->Vcy);
+   Vkey = Ak;
+  }
+ }
+ else
+ {
+  sf.pos=1504506;
+  Vkey = Ak;
+ }
+ sf.pos=1504507;
+ switch (Vkey)
+ {
+ case LEFT:
+  {
+   sf.pos=1504508;
+   if ((t->Vcx != 0))
+   {
+    sf.pos=1504509;
+    --(t->Vcx);
+   }
+    break;
+  }
+ case RIGHT:
+  {
+   sf.pos=1504510;
+   if ((t->Vcx != (t->Vcols - 1)))
+   {
+    sf.pos=1504511;
+    ++(t->Vcx);
+   }
+    break;
+  }
+ case UP:
+  {
+   sf.pos=1504512;
+   if ((t->Vcy != 0))
+   {
+    sf.pos=1504513;
+    --(t->Vcy);
+   }
+    break;
+  }
+ case DOWN:
+  {
+   sf.pos=1504514;
+   if ((t->Vcy != (t->Vrows - 1)))
+   {
+    sf.pos=1504515;
+    ++(t->Vcy);
+   }
     break;
   }
  }
@@ -8117,14 +8191,16 @@ YQfU *Yek3(YQfU *t) {
  topFrame = &sf;
  if (t == NULL) {sf.pos=1477400; t = Za(sizeof(YQfU));}
  sf.pos=1477401;
- t->Vrows = 0;
+ t->Vmode = 'N';
  sf.pos=1477402;
- t->Vcols = 0;
+ t->Vrows = 0;
  sf.pos=1477403;
- t->Vorig_termios = malloc(sizeof(struct termios));
+ t->Vcols = 0;
  sf.pos=1477404;
- t->Vcx = 0;
+ t->Vorig_termios = malloc(sizeof(struct termios));
  sf.pos=1477405;
+ t->Vcx = 0;
+ sf.pos=1477406;
  t->Vcy = 0;
  topFrame = sf.prev;
  return t;
@@ -8194,7 +8270,7 @@ Tc *YcnF(Ti Ax, Ti Ay) {
  return r;
 }
 void YLzL() {
- Tc Vc;
+ Ti Vc;
  Zsf sf;
  Ta *Vmovement = NULL;
  sf.prev = topFrame;
@@ -8202,7 +8278,7 @@ void YLzL() {
  topFrame = &sf;
  Vc = 0;
  sf.pos=4026600;
-char*c = &Vc;
+int*c = &Vc;
  sf.pos=4026601;
  Vc = Y8Q5();
  sf.pos=4026602;
@@ -8217,7 +8293,7 @@ char*c = &Vc;
  }
  else {
  sf.pos=4026606;
- if ((ZArrayFind((Ta*)Vmovement, (Tz)(Ti)Vc)>= 0))
+ if (((ZArrayFind((Ta*)Vmovement, (Tz)(Ti)Vc)>= 0) || (Vc >= 1000)))
  {
   sf.pos=4026607;
   Yeai(Vec, Vc);
@@ -8317,11 +8393,13 @@ void Y9Dc() {
  topFrame = sf.prev;
  return;
 }
-Tc Y8Q5() {
+Ti Y8Q5() {
  Ti Vnread;
  Tc Vc;
+ Ti Vres;
  Zsf sf;
- Tc r = 0;
+ Ti r = 0;
+ int rt = 0;
  sf.prev = topFrame;
  sf.pos = 0;
  topFrame = &sf;
@@ -8331,19 +8409,64 @@ int*nread = &Vnread;
  Vc = 0;
  sf.pos=7939001;
 char*c = &Vc;
+ Vres = 0;
  sf.pos=7939002;
+int*res = &Vres;
+ sf.pos=7939003;
  while ((*nread = read(STDIN_FILENO, c, 1)) != 1)
  {
-  sf.pos=7939003;
+  sf.pos=7939004;
   if (*nread == -1 && errno != EAGAIN)
   {
-   sf.pos=7939004;
+   sf.pos=7939005;
    YqsW(((Tc*)&Y9Ri));
   }
- sf.pos=7939005;
- }
  sf.pos=7939006;
- r = Vc;
+ }
+ sf.pos=7939007;
+ if ((Vc == 27))
+ {
+  sf.pos=7939008;
+    char seq[3];
+  sf.pos=7939009;
+  if (read(STDIN_FILENO, &seq[0], 1) != 1)
+  {
+   sf.pos=7939010;
+   r = '\x1b';
+   rt = 1;
+   goto YNjP;
+  }
+  sf.pos=7939011;
+  if (read(STDIN_FILENO, &seq[1], 1) != 1)
+  {
+   sf.pos=7939012;
+   r = '\x1b';
+   rt = 1;
+   goto YNjP;
+  }
+  sf.pos=7939013;
+  if (seq[0] == '[')
+  {
+   sf.pos=7939014;
+      switch (seq[1]) {
+        case 'A': *res = UP; break;
+        case 'B': *res = DOWN; break;
+        case 'C': *res = RIGHT; break;
+        case 'D': *res = LEFT; break;
+        default:  *res = '\x1b';
+      }
+  }
+YNjP:
+  if (rt) goto Y0Pr;
+ }
+ else
+ {
+  sf.pos=7939015;
+  Vres = Vc;
+ }
+ sf.pos=7939016;
+ r = Vres;
+Y0Pr:
  topFrame = sf.prev;
  return r;
 }
