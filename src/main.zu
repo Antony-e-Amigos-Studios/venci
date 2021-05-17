@@ -88,12 +88,51 @@ FUNC getCursorPosition(int &rows, int &cols) status
   RETURN OK
 }
 
+CLASS Erow
+  string $txt
+
+  NEW(string text)
+    $txt = text
+  }
+}
+
 CLASS EditorConfig
   nat $cx, $cy
   int $rows, $cols
   byte $mode
+  list<Erow> $erows
+  int $n_erows
+  int $rowoff
   C(struct termios*) $orig_termios
  
+  PROC $scroll()
+    IF $cy < $rowoff
+      $rowoff = $cy
+    }
+
+    IF $cy >= $rowoff + $rows
+      $rowoff = $cy - $rows + 1
+    }
+  }
+
+  PROC $appendRow(string s)
+    Erow r = NEW(s)
+    $erows.add(r)
+    $n_erows++
+  }
+
+  PROC $open(string fname)
+    IO.File f = IO.fileReader(fname)
+    IF f == NIL
+      die("couldn't open \(fname) for reading")
+    }
+    list<string> lines = f.readAllLines()
+    FOR line IN lines
+      THIS.appendRow(line)
+    }
+    f.close()
+  }
+
   PROC $moveCursor(int k)
     int key
     IF $mode == 'N'
@@ -124,7 +163,7 @@ CLASS EditorConfig
           $cy--
         }
       CASE C(DOWN)
-        IF $cy != $rows - 1
+        IF $cy != $n_erows - 1
           $cy++
         }
     }
@@ -147,9 +186,12 @@ CLASS EditorConfig
   }
 
   NEW()
+    $rowoff = 0
+    $erows = []
     $mode = C('N')
     $rows = 0
     $cols = 0
+    $n_erows = 0
     $orig_termios = C(malloc(sizeof(struct termios)))
 
     $cx = 0
@@ -210,6 +252,9 @@ PROC processKeypress()
     EXIT 0
   ELSE
     SWITCH c
+      CASE C(HOME); ec.cx = 0
+      CASE C(END); ec.cx = ec.cols - 1
+
       CASE C(PAGE_UP); PROCEED
       CASE C(PAGE_DOWN)
         FOR n IN ec.rows TO 0 STEP -1
@@ -233,20 +278,24 @@ PROC processKeypress()
 FUNC drawRows() string
   string ab = ""
   FOR y IN 0 TO ec.rows - 1
-    IF y == ec.rows / 3
-      string w = "Venci test, version " .. venci_v
-      int padding = (ec.cols - w.Size()) / 2
-      IF padding != 0
+    IF y >= ec.n_erows
+      IF ec.n_erows == 0 && y == ec.rows / 3
+        string w = "Venci test, version " .. venci_v
+        int padding = (ec.cols - w.Size()) / 2
+        IF padding != 0
+          ab ..= "~"
+          padding--
+        }
+        WHILE padding != 0
+          ab ..= " "
+          padding--
+        }
+        ab ..= w.slice(0, ec.cols)
+      ELSE
         ab ..= "~"
-        padding--
       }
-      WHILE padding != 0
-        ab ..= " "
-        padding--
-      }
-      ab ..= w.slice(0, ec.cols)
     ELSE
-      ab ..= "~"
+      ab ..= ec.erows[y + ec.rowoff].txt.slice(0, ec.cols)
     }
 
     ab ..= "\x1b[K"
@@ -258,6 +307,8 @@ FUNC drawRows() string
 }
 
 PROC refreshScreen()
+  ec.scroll()
+
   string ab = ""
 
   ab ..= tcalls("l", ["?25"])
@@ -265,7 +316,7 @@ PROC refreshScreen()
   
   ab ..= drawRows()
   
-  ab ..= gotoxy_s(ec.cx + 1, ec.cy + 1)
+  ab ..= gotoxy_s(ec.cx + 1, (ec.cy - ec.rowoff) + 1)
   ab ..= tcalls("h", ["?25"])
 
 >>> uses(getCstring)
@@ -304,33 +355,47 @@ FUNC readKey() int
         IF C(seq[2] == '~')
           byte seq1 = C(seq[1])
           SWITCH seq1.<int>
+            CASE C('1'); RETURN C(HOME)
+            CASE C('3'); RETURN C(DEL)
+            CASE C('4'); RETURN C(END)
             CASE C('5'); RETURN C(PAGE_UP)
             CASE C('6'); RETURN C(PAGE_DOWN)
+            CASE C('7'); RETURN C(HOME)
+            CASE C('8'); RETURN C(END)
           }
-          RETURN C('\x1b')
+        }
+      ELSE
+        byte seq1 = C(seq[1])
+        SWITCH seq1.<int>
+          CASE 'A'; RETURN C(UP)
+          CASE 'B'; RETURN C(DOWN)
+          CASE 'C'; RETURN C(RIGHT)
+          CASE 'D'; RETURN C(LEFT)
+          CASE 'H'; RETURN C(HOME)
+          CASE 'F'; RETURN C(END)
         }
       }
-
+    ELSEIF C(seq[0] == 'O')
       byte seq1 = C(seq[1])
       SWITCH seq1.<int>
-        CASE 'A'; RETURN C(UP)
-        CASE 'B'; RETURN C(DOWN)
-        CASE 'C'; RETURN C(RIGHT)
-        CASE 'D'; RETURN C(LEFT)
+        CASE 'H'; RETURN C(HOME)
+        CASE 'F'; RETURN C(END)
       }
-      RETURN C('\x1b')
     }
-  ELSE
-    res = c
-  }
 
-  RETURN res
+    RETURN C('\x1b')
+  ELSE
+    RETURN c
+  }
 }
 
 FUNC Main() int
   enableRawMode()
   IF ec.getWindowSize() != OK
     die("error getting window size")
+  }
+  IF ARG.rawSize() > 0
+    ec.open(ARG.getRawList()[0])
   }
 
   WHILE TRUE
