@@ -15,6 +15,7 @@
 #else
 # define GC_SIG SIGUSR2
 #endif
+#include <setjmp.h>
 #include <sys/time.h>
 #include <time.h>
 #include <termios.h>
@@ -228,6 +229,7 @@ Tl *ZLa(Tl *head, Ti after, Tz val);
 Tl *ZnewList(Tt *itemType, Ti size);
 Tl *ZLap(Tl *head, Tz val);
 void *ZListGetPtr(Tl *head, Ti idx);
+Tl *ZListClearItem(Tl *head, Ti idx);
 #define HT_INIT_SIZE 16
 #define PERTURB_SHIFT 5
 
@@ -468,6 +470,9 @@ extern Tto YjUM__T;
 typedef struct {
  char text[45];
 } Zs45;
+typedef struct {
+ char text[37];
+} Zs37;
 /* LOGModule done */
 /* including ARGModule structs */
 struct YnU5__S {
@@ -593,6 +598,7 @@ struct YQfU__S {
  Ti Vrowoff;
  Ti Vcoloff;
  Ti Vts;
+ Tb Vexpand;
  Tc *Vfilename;
  Tc *Vstatusmsg;
  Ti Vstatime;
@@ -602,9 +608,6 @@ extern Tto YQfU__T;
 typedef struct {
  char text[27];
 } Zs27;
-typedef struct {
- char text[34];
-} Zs34;
 /*
  * DECLARE FUNCTIONS AND GLOBALS
  */
@@ -614,19 +617,25 @@ void YxaJ(Ytlm *t, Tr Aw); /* MEModule__CException.writeTo */
 Zs4 YFDa = {"\002: \000"};
 Zs13 YHbP = {"\013Exception: \000"};
 Zs11 YDGe = {"\011Exception\000"};
+Tc *Yoww(Ytlm *t, Tb Averbose); /* MEModule__CException.toString */
 void YxaJa(Ytlm *t, Tb Averbose, Tr Aw); /* MEModule__CException.writeTo */
 Zs39 Y62e = {"\045\nStack backtrace (last called first):\000"};
 Zs12 Yv6_ = {"\012\n(unknown)\000"};
 Zs3 Yk = {"\001\n\000"};
 To ToYtlm[4];
-void YXHSa(YEro *t, Tr Aw); /* MEModule__CExit.writeTo */
+YEro *YE2c(YEro *t, Ti Avalue); /* MEModule__CExit.NEW */
 Zs7 YxJ1 = {"\005EXIT \000"};
+void YXHSa(YEro *t, Tr Aw); /* MEModule__CExit.writeTo */
+Tc *YEro__Yoww(YEro *t, Tb Averbose); /* MEModule__CExit.toString__p1 */
 void YEro__YxaJa(YEro *t, Tb Averbose, Tr Aw); /* MEModule__CExit.writeTo__p1 */
+Tc *YEro__Ytlm_I_imt[14];
 To ToYEro[4];
 Zs6 YJMo = {"\004Exit\000"};
+void YNab(YkxB *Apos, Ti Aval); /* MEModule.throwExit */
 YKhn *YDNob(YKhn *t, Ti Asize, Ti Alimit); /* MEModule__COutOfMemory.NEW */
 Zs28 YIBz = {"\032Out of memory (allocating \000"};
 Zs9 YDSH = {"\007 bytes)\000"};
+Tc *YKhn__YwtA__Yoww(YKhn *t, Tb Averbose); /* MEModule__COutOfMemory.toString__p2 */
 void YKhn__YwtA__YxaJa(YKhn *t, Tb Averbose, Tr Aw); /* MEModule__COutOfMemory.writeTo__p2 */
 void YKhn__YwtA__YxaJ(YKhn *t, Tr Aw); /* MEModule__COutOfMemory.writeTo__p2 */
 Tc *YKhn__Ytlm_I_imt[14];
@@ -634,6 +643,7 @@ To ToYKhn[4];
 Zs13 Y9Fv = {"\013OutOfMemory\000"};
 void Y1KV(Ti Asize); /* MEModule.throwOutOfMemorySize */
 Y1uN *Y1uN__YwtA__YRHR(Y1uN *t, Tc *Amsg); /* MEModule__CNilAccess.NEW__p2 */
+Tc *Y1uN__YwtA__Yoww(Y1uN *t, Tb Averbose); /* MEModule__CNilAccess.toString__p2 */
 void Y1uN__YwtA__YxaJa(Y1uN *t, Tb Averbose, Tr Aw); /* MEModule__CNilAccess.writeTo__p2 */
 void Y1uN__YwtA__YxaJ(Y1uN *t, Tr Aw); /* MEModule__CNilAccess.writeTo__p2 */
 Tc *Y1uN__Ytlm_I_imt[14];
@@ -641,6 +651,7 @@ To ToY1uN[4];
 Zs11 Y4wO = {"\011NilAccess\000"};
 void YvdV(YkxB *Apos, Tc *Atext); /* MEModule.throwNil */
 YAxe *YAxe__YwtA__YRHR(YAxe *t, Tc *Amsg); /* MEModule__CMemoryAccess.NEW__p2 */
+Tc *YAxe__YwtA__Yoww(YAxe *t, Tb Averbose); /* MEModule__CMemoryAccess.toString__p2 */
 void YAxe__YwtA__YxaJa(YAxe *t, Tb Averbose, Tr Aw); /* MEModule__CMemoryAccess.writeTo__p2 */
 void YAxe__YwtA__YxaJ(YAxe *t, Tr Aw); /* MEModule__CMemoryAccess.writeTo__p2 */
 Tc *YAxe__Ytlm_I_imt[14];
@@ -653,6 +664,7 @@ Zs12 YQNH = {"\012signal BUS\000"};
 Zs9 YpCZ = {"\007signal \000"};
 YVNj *YVNj__YwtA__YRHRa(YVNj *t, YkxB *Apos, Tc *Amsg); /* MEModule__CInit.NEW__p2 */
 YVNj *YVNj__YwtA__YRHR(YVNj *t, Tc *Amsg); /* MEModule__CInit.NEW__p2 */
+Tc *YVNj__YwtA__Yoww(YVNj *t, Tb Averbose); /* MEModule__CInit.toString__p2 */
 void YVNj__YwtA__YxaJa(YVNj *t, Tb Averbose, Tr Aw); /* MEModule__CInit.writeTo__p2 */
 void YVNj__YwtA__YxaJ(YVNj *t, Tr Aw); /* MEModule__CInit.writeTo__p2 */
 Tc *YVNj__Ytlm_I_imt[14];
@@ -660,6 +672,7 @@ To ToYVNj[4];
 Zs6 Ysqt = {"\004Init\000"};
 void Y3w6(Tc *Atext); /* MEModule.throwInit */
 Yalz *Yalz__YwtA__YRHR(Yalz *t, Tc *Amsg); /* MEModule__CBadValue.NEW__p2 */
+Tc *Yalz__YwtA__Yoww(Yalz *t, Tb Averbose); /* MEModule__CBadValue.toString__p2 */
 void Yalz__YwtA__YxaJa(Yalz *t, Tb Averbose, Tr Aw); /* MEModule__CBadValue.writeTo__p2 */
 void Yalz__YwtA__YxaJ(Yalz *t, Tr Aw); /* MEModule__CBadValue.writeTo__p2 */
 Tc *Yalz__Ytlm_I_imt[14];
@@ -667,6 +680,7 @@ To ToYalz[4];
 Zs10 YEZq = {"\010BadValue\000"};
 void Yaez(Tc *Atext); /* MEModule.throwBadValue */
 Yw3O *Yw3O__Yalz__YwtA__YRHR(Yw3O *t, Tc *Amsg); /* MEModule__COutOfRange.NEW__p3 */
+Tc *Yw3O__Yalz__YwtA__Yoww(Yw3O *t, Tb Averbose); /* MEModule__COutOfRange.toString__p3 */
 void Yw3O__Yalz__YwtA__YxaJ(Yw3O *t, Tr Aw); /* MEModule__COutOfRange.writeTo__p3 */
 void Yw3O__Yalz__YwtA__YxaJa(Yw3O *t, Tb Averbose, Tr Aw); /* MEModule__COutOfRange.writeTo__p3 */
 Tc *Yw3O__Ytlm_I_imt[14];
@@ -674,6 +688,7 @@ To ToYw3O[4];
 Zs12 YFK2 = {"\012OutOfRange\000"};
 void Y6NT(Ti Aindex, Tc *Amsg); /* MEModule.throwOutOfRange */
 Y2EX *Y2EX__Yalz__YwtA__YRHR(Y2EX *t, Tc *Amsg); /* MEModule__CKeyNotFound.NEW__p3 */
+Tc *Y2EX__Yalz__YwtA__Yoww(Y2EX *t, Tb Averbose); /* MEModule__CKeyNotFound.toString__p3 */
 void Y2EX__Yalz__YwtA__YxaJ(Y2EX *t, Tr Aw); /* MEModule__CKeyNotFound.writeTo__p3 */
 void Y2EX__Yalz__YwtA__YxaJa(Y2EX *t, Tb Averbose, Tr Aw); /* MEModule__CKeyNotFound.writeTo__p3 */
 Tc *Y2EX__Ytlm_I_imt[14];
@@ -685,6 +700,7 @@ void Y5LT(Tc *Akey, Tc *Amsg); /* MEModule.throwStringKeyNotFound */
 Zs18 YJ3Y = {"\020Key not found: \"\000"};
 Zs3 YI = {"\001\"\000"};
 YX0i *YX0i__Yalz__YwtA__YRHR(YX0i *t, Tc *Amsg); /* MEModule__CKeyExists.NEW__p3 */
+Tc *YX0i__Yalz__YwtA__Yoww(YX0i *t, Tb Averbose); /* MEModule__CKeyExists.toString__p3 */
 void YX0i__Yalz__YwtA__YxaJ(YX0i *t, Tr Aw); /* MEModule__CKeyExists.writeTo__p3 */
 void YX0i__Yalz__YwtA__YxaJa(YX0i *t, Tb Averbose, Tr Aw); /* MEModule__CKeyExists.writeTo__p3 */
 Tc *YX0i__Ytlm_I_imt[14];
@@ -695,6 +711,7 @@ Zs22 Y9qa = {"\024Key already exists: \000"};
 void YEeX(Tc *Akey, Tc *Amsg); /* MEModule.throwStringKeyExists */
 Zs23 YMKM = {"\025Key already exists: \"\000"};
 YP_P *YP_P__Yalz__YwtA__YRHR(YP_P *t, Tc *Amsg); /* MEModule__CIllegalByte.NEW__p3 */
+Tc *YP_P__Yalz__YwtA__Yoww(YP_P *t, Tb Averbose); /* MEModule__CIllegalByte.toString__p3 */
 void YP_P__Yalz__YwtA__YxaJ(YP_P *t, Tr Aw); /* MEModule__CIllegalByte.writeTo__p3 */
 void YP_P__Yalz__YwtA__YxaJa(YP_P *t, Tb Averbose, Tr Aw); /* MEModule__CIllegalByte.writeTo__p3 */
 Tc *YP_P__Ytlm_I_imt[14];
@@ -703,12 +720,14 @@ Zs13 Ydbm = {"\013IllegalByte\000"};
 void YLbE(); /* MEModule.throwIllegalByte */
 Zs15 Y4K_ = {"\015invalid UTF-8\000"};
 YzSI *YzSI__Ylz1__YwtA__YRHR(YzSI *t, Tc *Amsg); /* MEModule__CDivideByZero.NEW__p3 */
+Tc *YzSI__Ylz1__YwtA__Yoww(YzSI *t, Tb Averbose); /* MEModule__CDivideByZero.toString__p3 */
 void YzSI__Ylz1__YwtA__YxaJ(YzSI *t, Tr Aw); /* MEModule__CDivideByZero.writeTo__p3 */
 void YzSI__Ylz1__YwtA__YxaJa(YzSI *t, Tb Averbose, Tr Aw); /* MEModule__CDivideByZero.writeTo__p3 */
 Tc *YzSI__Ytlm_I_imt[14];
 To ToYzSI[4];
 Zs14 YxFl = {"\014DivideByZero\000"};
 YXKl *YXKl__YwtA__YRHR(YXKl *t, Tc *Amsg); /* MEModule__CIOError.NEW__p2 */
+Tc *YXKl__YwtA__Yoww(YXKl *t, Tb Averbose); /* MEModule__CIOError.toString__p2 */
 void YXKl__YwtA__YxaJa(YXKl *t, Tb Averbose, Tr Aw); /* MEModule__CIOError.writeTo__p2 */
 void YXKl__YwtA__YxaJ(YXKl *t, Tr Aw); /* MEModule__CIOError.writeTo__p2 */
 Tc *YXKl__Ytlm_I_imt[14];
@@ -716,6 +735,7 @@ To ToYXKl[4];
 Zs9 YTj3 = {"\007IOError\000"};
 YuDC *YdhH(YuDC *t); /* MEModule__CWrongType.NEW */
 Zs15 Ynjz = {"\015Type mismatch\000"};
+Tc *YuDC__YwtA__Yoww(YuDC *t, Tb Averbose); /* MEModule__CWrongType.toString__p2 */
 void YuDC__YwtA__YxaJa(YuDC *t, Tb Averbose, Tr Aw); /* MEModule__CWrongType.writeTo__p2 */
 void YuDC__YwtA__YxaJ(YuDC *t, Tr Aw); /* MEModule__CWrongType.writeTo__p2 */
 Tc *YuDC__Ytlm_I_imt[14];
@@ -723,6 +743,7 @@ To ToYuDC[4];
 Zs11 YCoZ = {"\011WrongType\000"};
 void YTuG(Ti Apos); /* MEModule.throwWrongType */
 YrHq *YrHq__YwtA__YRHR(YrHq *t, Tc *Amsg); /* MEModule__CInternal.NEW__p2 */
+Tc *YrHq__YwtA__Yoww(YrHq *t, Tb Averbose); /* MEModule__CInternal.toString__p2 */
 void YrHq__YwtA__YxaJa(YrHq *t, Tb Averbose, Tr Aw); /* MEModule__CInternal.writeTo__p2 */
 void YrHq__YwtA__YxaJ(YrHq *t, Tr Aw); /* MEModule__CInternal.writeTo__p2 */
 Tc *YrHq__Ytlm_I_imt[14];
@@ -818,6 +839,7 @@ Zs16 Y3l3 = {"\016SEVERE ERROR: \000"};
 Zs15 YmM8 = {"\015FATAL ERROR: \000"};
 Zs3 YU = {"\001.\000"};
 Zs5 YwV7 = {"\00306d\000"};
+Zs37 YQAha = {"\043/home/tsuki/.zimbu/lib/LOGModule.zu\000"};
 void YwlF(Tr Aout); /* MLOGModule.reportStack */
 Zs12 YDzC = {"\012Backtrace:\000"};
 Ti YvW3 = 0; /* MLOGModule.lastFlush */
@@ -866,6 +888,7 @@ Zs29 YjTs = {"\033INTERNAL: unknown flag type\000"};
 void YSUO(Tc *Amsg); /* MARGModule.error */
 Zs22 YkFE = {"\024To list flags use: '\000"};
 Zs10 Y15F = {"\010 --help'\000"};
+Zs37 Ye5Da = {"\043/home/tsuki/.zimbu/lib/ARGModule.zu\000"};
 void Yfj5(Tb Averbose); /* MARGModule.displayHelp */
 Zs21 YaBy = {"\023Command line flags:\000"};
 Zs13 YwXF = {"\013--morehelp \000"};
@@ -934,17 +957,21 @@ void Yoz2(Ys45 *t); /* CErow.back */
 Ys45 *Yngj(Ys45 *t, Tc *Atext); /* CErow.NEW */
 To ToYs45[4];
 Zs6 YSv9 = {"\004Erow\000"};
+void YouM(YQfU *t, Tc *As); /* CEditorConfig.setStatmsg */
 Tc *YoQj(YQfU *t); /* CEditorConfig.rowsToStr */
 void YWKz(YQfU *t); /* CEditorConfig.save */
+Zs16 YU14 = {"\016(T.T) | file: \000"};
+Zs17 YiHc = {"\017 doesn't exist!\000"};
+Zs12 YxQ_ = {"\012(\\^w^/) | \000"};
+Zs16 YPwc = {"\016 bytes written\000"};
+Zs31 Y7hz = {"\035(o.O?) | Error opening file: \000"};
+Zs22 Yh33 = {"\024(@_@) | no filename!\000"};
 void YJA8(YQfU *t); /* CEditorConfig.scroll */
 void Y1dH(YQfU *t, Tc *As); /* CEditorConfig.appendRow */
 void YcHr(YQfU *t, Ti Ac); /* CEditorConfig.insertChar */
 void YneO(YQfU *t); /* CEditorConfig.shiftRowLeft */
 void YaZr(YQfU *t, Tc *Afname); /* CEditorConfig.open */
-Zs16 YBAF = {"\016couldn't open \000"};
-Zs14 Y3gH = {"\014 for reading\000"};
 void Yeai(YQfU *t, Ti Ak); /* CEditorConfig.moveCursor */
-void YouM(YQfU *t, Tc *As); /* CEditorConfig.setStatmsg */
 Ts YLNB(YQfU *t); /* CEditorConfig.getWindowSize */
 Zs14 Yd1d = {"\014\033[999C\033[999B\000"};
 YQfU *Yek3(YQfU *t); /* CEditorConfig.NEW */
@@ -961,6 +988,7 @@ Zs3 Yja = {"\001H\000"};
 Tc *YcnF(Ti Ax, Ti Ay); /* gotoxy_s */
 void YLzL(); /* processKeypress */
 Zs7 Yp3l = {"\005hjlk+\000"};
+Zs12 Ya_Da = {"\012src/out.zu\000"};
 Tc *YZeI(); /* drawRows */
 Zs22 Y1ky = {"\024Venci test, version \000"};
 Zs3 Yab = {"\001~\000"};
@@ -985,7 +1013,7 @@ Zs3 YPa = {"\001h\000"};
 Ti Y8Q5(); /* readKey */
 Zs12 Y9Ri = {"\012read error\000"};
 Zs27 Yt7s = {"\031error getting window size\000"};
-Zs34 YOA3 = {"\040info: press Ctrl-Q to quit venci\000"};
+Zs56 YmOu = {"\066info: press Ctrl-Q to quit venci, press Ctrl-S to save\000"};
 
 Tt bool__T  = {21, 0, 0};
 Tt byte__T  = {11, 0, 0};
@@ -1020,7 +1048,17 @@ typedef struct Zsf__S {
  Zfo *frof;
 } Zsf;
 #define POS_MASK 0x3fffffff
+typedef struct StryCtx__S {
+ jmp_buf jmpBuf;
+ Zsf *sf;
+} Ttc;
 typedef struct Senv__S {
+ Ttc  *tryCtx;
+ int  tryCtxSize;
+ int  tryCtxUsed;
+ Tr   *thrown;
+ int  thrownSize;
+ int  thrownUsed;
  int tosNr;
 } Tn; /* per-thread environemnt */
 
@@ -1028,7 +1066,7 @@ Zsf *topFrame = NULL;
 int inZa = 0;
 int ZaEntered = 0;
 
-Tn Zenv = {0};
+Tn Zenv = {NULL, 0, 0, NULL, 0, 0, 0};
 
 void beforeExit() {
 }
@@ -1198,7 +1236,7 @@ Tc YHVP[]="/home/tsuki/.zimbu/lib/ZModule.zu";
 Tc Ya_D[]="src/out.zu";
 Tc Yaa[]="";
 Tcpos ZcTbl0[]={
-{365,14},
+{393,14},
 };
 Tc Y_VO[]="ARG.Bool.NEW/1()";
 Tcpos ZcTbl3273[]={
@@ -1495,6 +1533,13 @@ Tcpos ZcTbl60593[]={
 {4,20},
 {4,24},
 };
+Tc YO_6[]="E.BadValue.toString__p2/2()";
+Tcpos ZcTbl56573[]={
+{105,11},
+{1,27},
+{2,7},
+{3,16},
+};
 Tc Y9VX[]="E.BadValue.writeTo__p2/4()";
 Tcpos ZcTbl46171[]={
 {114,11},
@@ -1530,6 +1575,13 @@ Tcpos ZcTbl73471[]={
 {4,20},
 {4,24},
 };
+Tc YNLE[]="E.DivideByZero.toString__p3/3()";
+Tcpos ZcTbl69435[]={
+{105,11},
+{1,27},
+{2,7},
+{3,16},
+};
 Tc YG80[]="E.DivideByZero.writeTo__p3/6()";
 Tcpos ZcTbl44130[]={
 {87,11},
@@ -1557,6 +1609,13 @@ Tcpos ZcTbl54331[]={
 {13,18},
 {5,12},
 };
+Tc Y3yN[]="E.Exception.toString()";
+Tcpos ZcTbl97135[]={
+{105,11},
+{1,27},
+{2,7},
+{3,16},
+};
 Tc YgcH[]="E.Exception.writeTo()";
 Tcpos ZcTbl49183[]={
 {87,11},
@@ -1583,6 +1642,21 @@ Tcpos ZcTbl36491[]={
 {12,18},
 {13,18},
 {5,12},
+};
+Tc YwZj[]="E.Exit.NEW/1()";
+Tcpos ZcTbl31890[]={
+{171,5},
+{1,14},
+{2,16},
+{4,20},
+{4,24},
+};
+Tc Ywpu[]="E.Exit.toString__p1/1()";
+Tcpos ZcTbl94689[]={
+{105,11},
+{1,27},
+{2,7},
+{3,16},
 };
 Tc YTjU[]="E.Exit.writeTo/2()";
 Tcpos ZcTbl92163[]={
@@ -1620,6 +1694,13 @@ Tcpos ZcTbl48299[]={
 {4,20},
 {4,24},
 };
+Tc Yc7B[]="E.IOError.toString__p2/2()";
+Tcpos ZcTbl32191[]={
+{105,11},
+{1,27},
+{2,7},
+{3,16},
+};
 Tc Y59h[]="E.IOError.writeTo__p2/4()";
 Tcpos ZcTbl89685[]={
 {114,11},
@@ -1654,6 +1735,13 @@ Tcpos ZcTbl45209[]={
 {2,12},
 {4,20},
 {4,24},
+};
+Tc YPGE[]="E.IllegalByte.toString__p3/3()";
+Tcpos ZcTbl13917[]={
+{105,11},
+{1,27},
+{2,7},
+{3,16},
 };
 Tc YALK[]="E.IllegalByte.writeTo__p3/6()";
 Tcpos ZcTbl9948[]={
@@ -1698,6 +1786,13 @@ Tcpos ZcTbl63578[]={
 {4,20},
 {4,24},
 };
+Tc YeMI[]="E.Init.toString__p2/2()";
+Tcpos ZcTbl93453[]={
+{105,11},
+{1,27},
+{2,7},
+{3,16},
+};
 Tc YMF2[]="E.Init.writeTo__p2/4()";
 Tcpos ZcTbl96107[]={
 {114,11},
@@ -1732,6 +1827,13 @@ Tcpos ZcTbl78082[]={
 {2,12},
 {4,20},
 {4,24},
+};
+Tc YFnU[]="E.Internal.toString__p2/2()";
+Tcpos ZcTbl79874[]={
+{105,11},
+{1,27},
+{2,7},
+{3,16},
 };
 Tc YxLq[]="E.Internal.writeTo__p2/4()";
 Tcpos ZcTbl412[]={
@@ -1768,6 +1870,13 @@ Tcpos ZcTbl85000[]={
 {4,20},
 {4,24},
 };
+Tc YJyB[]="E.KeyExists.toString__p3/3()";
+Tcpos ZcTbl4984[]={
+{105,11},
+{1,27},
+{2,7},
+{3,16},
+};
 Tc Y4SL[]="E.KeyExists.writeTo__p3/6()";
 Tcpos ZcTbl14715[]={
 {87,11},
@@ -1802,6 +1911,13 @@ Tcpos ZcTbl29585[]={
 {2,12},
 {4,20},
 {4,24},
+};
+Tc YlfT[]="E.KeyNotFound.toString__p3/3()";
+Tcpos ZcTbl67925[]={
+{105,11},
+{1,27},
+{2,7},
+{3,16},
 };
 Tc Ygil[]="E.KeyNotFound.writeTo__p3/6()";
 Tcpos ZcTbl43124[]={
@@ -1838,6 +1954,13 @@ Tcpos ZcTbl73580[]={
 {4,20},
 {4,24},
 };
+Tc Yh7q[]="E.MemoryAccess.toString__p2/2()";
+Tcpos ZcTbl18292[]={
+{105,11},
+{1,27},
+{2,7},
+{3,16},
+};
 Tc Y4vu[]="E.MemoryAccess.writeTo__p2/4()";
 Tcpos ZcTbl25958[]={
 {114,11},
@@ -1872,6 +1995,13 @@ Tcpos ZcTbl32086[]={
 {2,12},
 {4,20},
 {4,24},
+};
+Tc YkLW[]="E.NilAccess.toString__p2/2()";
+Tcpos ZcTbl79110[]={
+{105,11},
+{1,27},
+{2,7},
+{3,16},
 };
 Tc YcIS[]="E.NilAccess.writeTo__p2/4()";
 Tcpos ZcTbl35088[]={
@@ -1908,6 +2038,13 @@ Tcpos ZcTbl80644[]={
 {4,20},
 {4,24},
 };
+Tc Ys9t[]="E.OutOfMemory.toString__p2/2()";
+Tcpos ZcTbl90571[]={
+{105,11},
+{1,27},
+{2,7},
+{3,16},
+};
 Tc YoZS[]="E.OutOfMemory.writeTo__p2/4()";
 Tcpos ZcTbl11217[]={
 {114,11},
@@ -1943,6 +2080,13 @@ Tcpos ZcTbl56381[]={
 {4,20},
 {4,24},
 };
+Tc Y6co[]="E.OutOfRange.toString__p3/3()";
+Tcpos ZcTbl83985[]={
+{105,11},
+{1,27},
+{2,7},
+{3,16},
+};
 Tc YqK0[]="E.OutOfRange.writeTo__p3/6()";
 Tcpos ZcTbl52608[]={
 {87,11},
@@ -1977,6 +2121,13 @@ Tcpos ZcTbl87235[]={
 {2,12},
 {4,20},
 {4,24},
+};
+Tc YOoP[]="E.WrongType.toString__p2/2()";
+Tcpos ZcTbl16768[]={
+{105,11},
+{1,27},
+{2,7},
+{3,16},
 };
 Tc YlgI[]="E.WrongType.writeTo__p2/4()";
 Tcpos ZcTbl86818[]={
@@ -2034,7 +2185,7 @@ Tcpos ZcTbl52386[]={
 };
 Tc YTMY[]="EditorConfig.NEW()";
 Tcpos ZcTbl14774[]={
-{346,3},
+{373,3},
 {1,13},
 {2,13},
 {3,12},
@@ -2046,13 +2197,14 @@ Tcpos ZcTbl14774[]={
 {9,11},
 {10,14},
 {11,9},
-{12,19},
-{14,9},
+{12,13},
+{13,19},
 {15,9},
+{16,9},
 };
 Tc YUQe[]="EditorConfig.appendRow()";
 Tcpos ZcTbl73728[]={
-{225,9},
+{246,9},
 {1,14},
 {3,5},
 {5,5},
@@ -2060,7 +2212,7 @@ Tcpos ZcTbl73728[]={
 };
 Tc YM6u[]="EditorConfig.getWindowSize()";
 Tcpos ZcTbl70635[]={
-{330,9},
+{357,9},
 {1,4},
 {4,5},
 {5,7},
@@ -2072,7 +2224,7 @@ Tcpos ZcTbl70635[]={
 };
 Tc YiHr[]="EditorConfig.insertChar()";
 Tcpos ZcTbl37527[]={
-{234,9},
+{255,9},
 {1,5},
 {2,7},
 {4,5},
@@ -2081,7 +2233,7 @@ Tcpos ZcTbl37527[]={
 };
 Tc YnTk[]="EditorConfig.moveCursor()";
 Tcpos ZcTbl15045[]={
-{261,9},
+{288,9},
 {3,5},
 {4,35},
 {8,7},
@@ -2110,27 +2262,33 @@ Tcpos ZcTbl15045[]={
 {51,9},
 {52,11},
 {53,11},
-{57,33},
-{58,24},
-{59,5},
-{60,11},
+{56,9},
+{57,11},
+{58,19},
+{62,33},
+{63,24},
+{64,5},
+{65,11},
 };
 Tc Y3iP[]="EditorConfig.open()";
 Tcpos ZcTbl63278[]={
-{248,9},
-{1,20},
-{2,5},
-{3,7},
-{5,15},
-{6,28},
-{7,5},
-{8,7},
-{7,5},
-{10,5},
+{269,9},
+{1,5},
+{1,5},
+{2,22},
+{6,7},
+{7,9},
+{9,19},
+{10,32},
+{11,9},
+{12,11},
+{11,9},
+{14,9},
+{4,7},
 };
 Tc YZoA[]="EditorConfig.rowsToStr()";
 Tcpos ZcTbl81219[]={
-{184,9},
+{190,9},
 {1,18},
 {2,5},
 {3,11},
@@ -2139,16 +2297,26 @@ Tcpos ZcTbl81219[]={
 };
 Tc YSK2[]="EditorConfig.save()";
 Tcpos ZcTbl82575[]={
-{192,9},
+{198,9},
 {1,5},
 {2,23},
-{4,22},
-{5,7},
-{6,7},
+{4,7},
+{4,7},
+{5,24},
+{9,9},
+{10,11},
+{12,11},
+{13,11},
+{14,11},
+{15,28},
+{14,11},
+{17,11},
+{7,9},
+{21,7},
 };
 Tc YK_C[]="EditorConfig.scroll()";
 Tcpos ZcTbl77103[]={
-{202,9},
+{223,9},
 {1,9},
 {2,5},
 {3,11},
@@ -2163,13 +2331,13 @@ Tcpos ZcTbl77103[]={
 };
 Tc YLfe[]="EditorConfig.setStatmsg()";
 Tcpos ZcTbl77835[]={
-{325,9},
+{185,9},
 {1,16},
 {2,14},
 };
 Tc YVSL[]="EditorConfig.shiftRowLeft()";
 Tcpos ZcTbl19937[]={
-{243,9},
+{264,9},
 {1,5},
 {2,5},
 };
@@ -2412,7 +2580,7 @@ Tcpos ZcTbl84899[]={
 };
 Tc Y9QD[]="Main()";
 Tcpos ZcTbl5270[]={
-{650,3},
+{685,3},
 {1,3},
 {2,5},
 {4,3},
@@ -2472,7 +2640,7 @@ Tcpos ZcTbl18187[]={
 };
 Tc YrXP[]="clrscr()";
 Tcpos ZcTbl94330[]={
-{397,3},
+{425,3},
 {1,3},
 };
 Tc Yy3n[]="cx2rx()";
@@ -2494,7 +2662,7 @@ Tcpos ZcTbl56087[]={
 };
 Tc Y8aB[]="drawMsgBar()";
 Tcpos ZcTbl86795[]={
-{546,15},
+{581,15},
 {1,6},
 {2,29},
 {3,3},
@@ -2503,7 +2671,7 @@ Tcpos ZcTbl86795[]={
 };
 Tc YCgG[]="drawRows()";
 Tcpos ZcTbl31458[]={
-{479,15},
+{514,15},
 {1,3},
 {2,15},
 {3,5},
@@ -2533,7 +2701,7 @@ Tcpos ZcTbl31458[]={
 };
 Tc Y5xc[]="drawStatusBar()";
 Tcpos ZcTbl25708[]={
-{517,15},
+{552,15},
 {2,108},
 {4,56},
 {5,26},
@@ -2553,7 +2721,7 @@ Tcpos ZcTbl25708[]={
 };
 Tc YdWL[]="enableRawMode()";
 Tcpos ZcTbl25411[]={
-{377,4},
+{405,4},
 };
 Tc YetL[]="getCursorPosition()";
 Tcpos ZcTbl15576[]={
@@ -2591,15 +2759,15 @@ Tcpos ZcTbl15576[]={
 };
 Tc YA77[]="gotoxy()";
 Tcpos ZcTbl56063[]={
-{402,3},
+{430,3},
 };
 Tc YCn_[]="gotoxy_s()";
 Tcpos ZcTbl14477[]={
-{406,10},
+{434,10},
 };
 Tc YQ8H[]="processKeypress()";
 Tcpos ZcTbl40266[]={
-{411,4},
+{439,4},
 {3,5},
 {4,35},
 {5,3},
@@ -2622,13 +2790,17 @@ Tcpos ZcTbl40266[]={
 {42,11},
 {40,9},
 {49,9},
-{58,9},
-{59,11},
-{61,11},
+{52,9},
+{53,11},
+{54,13},
+{53,11},
+{65,9},
+{66,11},
+{68,11},
 };
 Tc YRKs[]="readKey()";
 Tcpos ZcTbl79390[]={
-{577,4},
+{612,4},
 {4,4},
 {8,4},
 {11,3},
@@ -2673,7 +2845,7 @@ Tcpos ZcTbl79390[]={
 };
 Tc YClS[]="refreshScreen()";
 Tcpos ZcTbl56800[]={
-{556,3},
+{591,3},
 {2,15},
 {4,6},
 {5,6},
@@ -2708,6 +2880,7 @@ Tcode ZcodeTable[]={
 {412,Y6mX,YxLq,ZcTbl412},
 {1872,Yusm,YNFk,ZcTbl1872},
 {3273,Ye5D,Y_VO,ZcTbl3273},
+{4984,Y6mX,YJyB,ZcTbl4984},
 {5270,Ya_D,Y9QD,ZcTbl5270},
 {5342,YTAg,YQE_,ZcTbl5342},
 {6308,Y6mX,YR5_,ZcTbl6308},
@@ -2715,6 +2888,7 @@ Tcode ZcodeTable[]={
 {9948,Y6mX,YALK,ZcTbl9948},
 {10613,Y6mX,YCbo,ZcTbl10613},
 {11217,Y6mX,YoZS,ZcTbl11217},
+{13917,Y6mX,YPGE,ZcTbl13917},
 {14477,Ya_D,YCn_,ZcTbl14477},
 {14715,Y6mX,Y4SL,ZcTbl14715},
 {14774,Ya_D,YTMY,ZcTbl14774},
@@ -2724,7 +2898,9 @@ Tcode ZcodeTable[]={
 {15755,Yusm,YEgn,ZcTbl15755},
 {16053,Yusm,Y5P_,ZcTbl16053},
 {16350,Ye5D,Ygzb,ZcTbl16350},
+{16768,Y6mX,YOoP,ZcTbl16768},
 {18187,YHVP,Ym1t,ZcTbl18187},
+{18292,Y6mX,Yh7q,ZcTbl18292},
 {19937,Ya_D,YVSL,ZcTbl19937},
 {20149,Y6mX,YFbI,ZcTbl20149},
 {20941,Ya_D,YMaL,ZcTbl20941},
@@ -2738,7 +2914,9 @@ Tcode ZcodeTable[]={
 {29560,Ye5D,YzK9,ZcTbl29560},
 {29585,Y6mX,YAVe,ZcTbl29585},
 {31458,Ya_D,YCgG,ZcTbl31458},
+{31890,Y6mX,YwZj,ZcTbl31890},
 {32086,Y6mX,Y1As,ZcTbl32086},
+{32191,Y6mX,Yc7B,ZcTbl32191},
 {32939,YTAg,Y0DO,ZcTbl32939},
 {33010,Ya_D,YegA,ZcTbl33010},
 {34818,YTAg,YHWY,ZcTbl34818},
@@ -2773,6 +2951,7 @@ Tcode ZcodeTable[]={
 {56421,Ya_D,YL2R,ZcTbl56421},
 {56509,Ya_D,YR5F,ZcTbl56509},
 {56555,YQAh,YFIR,ZcTbl56555},
+{56573,Y6mX,YO_6,ZcTbl56573},
 {56800,Ya_D,YClS,ZcTbl56800},
 {59651,Ya_D,YrH_,ZcTbl59651},
 {59819,Yusm,YGQL,ZcTbl59819},
@@ -2786,6 +2965,8 @@ Tcode ZcodeTable[]={
 {64531,Yusm,YrJP,ZcTbl64531},
 {66188,Yusm,YJ7z,ZcTbl66188},
 {66501,Ye5D,YPPv,ZcTbl66501},
+{67925,Y6mX,YlfT,ZcTbl67925},
+{69435,Y6mX,YNLE,ZcTbl69435},
 {70635,Ya_D,YM6u,ZcTbl70635},
 {72007,Yusm,YzQB,ZcTbl72007},
 {72184,Ya_D,Yy3n,ZcTbl72184},
@@ -2799,7 +2980,9 @@ Tcode ZcodeTable[]={
 {77103,Ya_D,YK_C,ZcTbl77103},
 {77835,Ya_D,YLfe,ZcTbl77835},
 {78082,Y6mX,YbzA,ZcTbl78082},
+{79110,Y6mX,YkLW,ZcTbl79110},
 {79390,Ya_D,YRKs,ZcTbl79390},
+{79874,Y6mX,YFnU,ZcTbl79874},
 {80644,Y6mX,YobA,ZcTbl80644},
 {81219,Ya_D,YZoA,ZcTbl81219},
 {81580,Yusm,Y5X7,ZcTbl81580},
@@ -2809,6 +2992,7 @@ Tcode ZcodeTable[]={
 {82575,Ya_D,YSK2,ZcTbl82575},
 {82618,Yusm,Yxlj,ZcTbl82618},
 {83326,YQAh,YVvh,ZcTbl83326},
+{83985,Y6mX,Y6co,ZcTbl83985},
 {84870,Yusm,Y_pS,ZcTbl84870},
 {84899,YQAh,Y8w5,ZcTbl84899},
 {85000,Y6mX,Ycb9,ZcTbl85000},
@@ -2821,12 +3005,16 @@ Tcode ZcodeTable[]={
 {89685,Y6mX,Y59h,ZcTbl89685},
 {89987,Yusm,YCbR,ZcTbl89987},
 {90139,Ya_D,YxWc,ZcTbl90139},
+{90571,Y6mX,Ys9t,ZcTbl90571},
 {90810,Ya_D,YQuU,ZcTbl90810},
 {92163,Y6mX,YTjU,ZcTbl92163},
+{93453,Y6mX,YeMI,ZcTbl93453},
 {94330,Ya_D,YrXP,ZcTbl94330},
+{94689,Y6mX,Ywpu,ZcTbl94689},
 {94823,Yusm,Yj_J,ZcTbl94823},
 {96107,Y6mX,YMF2,ZcTbl96107},
 {97019,Y6mX,YgQK,ZcTbl97019},
+{97135,Y6mX,Y3yN,ZcTbl97135},
 {99838,Yusm,YTE3,ZcTbl99838},
 {99886,Y6mX,Y0Jk,ZcTbl99886},
 };
@@ -3121,8 +3309,7 @@ void *Znio(int type, Ti pos, Tr tr) {
 }
 
 void Zexit(YkxB *pos, Ti val) {
- beforeExit();
- exit((int)val);
+ YNab(pos, val);
 }
 
 Ti ZChar2ByteIdx(Tc *p, Ti len, Ti charIdx) {
@@ -3320,7 +3507,37 @@ void ZforRangeNextInt(Tfr *s, Ti *p) {
  ZforRangeGetInt(s, p);
 }
 
+void ZtryDeeper(Tn *e, Zsf *sf) {
+ if (e->tryCtx == NULL) {
+  e->tryCtxSize = 20;
+  e->tryCtx = ZaNm(sizeof(Ttc) * e->tryCtxSize);
+  e->tryCtxUsed = 1;
+ } else if (++e->tryCtxUsed > e->tryCtxSize) {
+  e->tryCtxSize += 20;
+  e->tryCtx = ZranNm(e->tryCtx, sizeof(Ttc) * (e->tryCtxSize - 20), sizeof(Ttc) * e->tryCtxSize);
+ }
+ e->tryCtx[e->tryCtxUsed - 1].sf = sf;
+}
+void Zrethrow() {
+ Tn *e = (&Zenv);
+   ZthrowIobject(e->thrown[--e->thrownUsed]);
+}
+
 void ZthrowIobject(Tr eo) {
+ Tn *e = (&Zenv);
+ Ttc *ctx = &e->tryCtx[e->tryCtxUsed - 1];
+ if (e->tryCtxUsed > 0) {
+  if (e->thrown == NULL) {
+   e->thrownSize = 10;
+   e->thrown = ZaNmi(sizeof(Tr) * e->thrownSize);
+   e->thrownUsed = 1;
+  } else if (++e->thrownUsed > e->thrownSize) {
+   e->thrownSize += 20;
+   e->thrown = ZranNm(e->thrown, sizeof(Tr) * (e->thrownSize - 20), sizeof(Tr *) * e->thrownSize);
+  }
+  e->thrown[e->thrownUsed - 1] = eo;
+  longjmp(ctx->jmpBuf, 42);
+ } else
  YxIS(eo);
 }
 int ZstringCmp(Tc *s1, Tc *s2) {
@@ -3922,6 +4139,19 @@ void *ZListGetPtr(Tl *head, Ti idx) {
  return NULL;
 }
 
+Tl *ZListClearItem(Tl *head, Ti idx) {
+ if (head == NULL) ZthrowCstringNil("Invoking remove() on NIL list");
+ Ti n = ZListFindIdx(head, idx);
+ if (n >= 0) {
+  Ti len = head->itemCount - (n - head->empty) - 1;
+  if (len > 0)
+   memmove(((char*)head->items) + n * head->itemSize, ((char*)head->items) + (n + 1) * head->itemSize, len * head->itemSize);
+  head->itemCount--;
+  // ZListShrink(head);
+ }
+ return head;
+}
+
 static int stringCmp(const void *p1, const void *p2) {
  Tc *p1p;
  Tc *p2p;
@@ -4481,6 +4711,27 @@ void YxaJ(Ytlm *t, Tr Aw) {
  topFrame = sf.prev;
  return;
 }
+Tc *Yoww(Ytlm *t, Tb Averbose) {
+ Zsf sf;
+ Tc *r = 0;
+ YjUM *Vw = 0;
+ Tr t0 = {NULL};
+ sf.prev = topFrame;
+ sf.pos = 0;
+ topFrame = &sf;
+ if (t == NULL) {
+  sf.pos=9713500;
+  ZthrowThisNil();
+ }
+ sf.pos=9713501;
+ Vw = Za(sizeof(YjUM));
+ sf.pos=9713502;
+ YxaJa(t, Averbose, *Znao(&t0, Vw, YjUM__YdXi_imt, 2));
+ sf.pos=9713503;
+ r = YbNW(Vw);
+ topFrame = sf.prev;
+ return r;
+}
 void YxaJa(Ytlm *t, Tb Averbose, Tr Aw) {
  Zsf sf;
  Tl *Zf2 = NULL;
@@ -4542,6 +4793,21 @@ To ToYtlm[] = {
  {0, (Tt*)&list__T}, /* backtrace */
 };
 Tto Ytlm__T = {390, (Tc*)&YDGe, 0, ToYtlm};
+YEro *YE2c(YEro *t, Ti Avalue) {
+ Zsf sf;
+ sf.prev = topFrame;
+ sf.pos = 0;
+ topFrame = &sf;
+ if (t == NULL) {sf.pos=3189000; t = Za(sizeof(YEro));}
+ sf.pos=3189001;
+ t->Vvalue = Avalue;
+ sf.pos=3189002;
+ t->Vmessage = ZcS(((Tc*)&YxJ1), Zint2string(Avalue));
+ sf.pos=3189003;
+ t->Vbacktrace = (sf.pos=3189004, MZ__backtrace(1, -1));
+ topFrame = sf.prev;
+ return t;
+}
 void YXHSa(YEro *t, Tr Aw) {
  Zsf sf;
  sf.prev = topFrame;
@@ -4573,6 +4839,27 @@ void YXHSa(YEro *t, Tr Aw) {
  }
  topFrame = sf.prev;
  return;
+}
+Tc *YEro__Yoww(YEro *t, Tb Averbose) {
+ Zsf sf;
+ Tc *r = 0;
+ YjUM *Vw = 0;
+ Tr t0 = {NULL};
+ sf.prev = topFrame;
+ sf.pos = 0;
+ topFrame = &sf;
+ if (t == NULL) {
+  sf.pos=9468900;
+  ZthrowThisNil();
+ }
+ sf.pos=9468901;
+ Vw = Za(sizeof(YjUM));
+ sf.pos=9468902;
+ YEro__YxaJa(t, Averbose, *Znao(&t0, Vw, YjUM__YdXi_imt, 2));
+ sf.pos=9468903;
+ r = YbNW(Vw);
+ topFrame = sf.prev;
+ return r;
 }
 void YEro__YxaJa(YEro *t, Tb Averbose, Tr Aw) {
  Zsf sf;
@@ -4628,6 +4915,22 @@ void YEro__YxaJa(YEro *t, Tb Averbose, Tr Aw) {
  topFrame = sf.prev;
  return;
 }
+Tc *YEro__Ytlm_I_imt[] = {
+ (Tc*)&YEro__T,
+ (Tc*)0,
+ (Tc*)0,
+ (Tc*)0,
+ (Tc*)0, /* MEModule__CExit.NEW - YEro__YRHRa */
+ (Tc*)0, /* MEModule__CExit.NEW - YEro__YRHR */
+ (Tc*)0, /* MEModule__CExit.ToString - Ydtua */
+ (Tc*)YEro__YxaJa, /* MEModule__CExit.writeTo - YEro__YxaJa */
+ (Tc*)YXHSa, /* MEModule__CExit.writeTo - YXHSa */
+ (Tc*)YEro__Yoww, /* MEModule__CExit.toString - YEro__Yoww */
+ (Tc*)0, /* MEModule__CExit.getMessage - YEro__YCzX */
+ (Tc*)0, /* MEModule__CExit.getPos - YEro__YvCK */
+ (Tc*)0, /* MEModule__CExit.getBacktrace - YEro__Y4bq */
+ (Tc*)0, /* Init - YEroa */
+};
 To ToYEro[] = {
  {3, 0},
  {0, (Tt*)&string__T}, /* message */
@@ -4635,6 +4938,15 @@ To ToYEro[] = {
  {0, (Tt*)&list__T}, /* backtrace */
 };
 Tto YEro__T = {390, (Tc*)&YJMo, 0, ToYEro};
+void YNab(YkxB *Apos, Ti Aval) {
+ Tr ex;
+ YEro *Ve = 0;
+ Tr t0 = {NULL};
+ Ve = YE2c(NULL, Aval);
+ Ve->Vpos = Apos;
+ *Znao(&ex, Ve, YEro__Ytlm_I_imt, 1);
+ ZthrowIobject(ex);
+}
 YKhn *YDNob(YKhn *t, Ti Asize, Ti Alimit) {
  Zsf sf;
  sf.prev = topFrame;
@@ -4649,6 +4961,27 @@ YKhn *YDNob(YKhn *t, Ti Asize, Ti Alimit) {
  t->Vbacktrace = (sf.pos=8064404, MZ__backtrace(1, Alimit));
  topFrame = sf.prev;
  return t;
+}
+Tc *YKhn__YwtA__Yoww(YKhn *t, Tb Averbose) {
+ Zsf sf;
+ Tc *r = 0;
+ YjUM *Vw = 0;
+ Tr t0 = {NULL};
+ sf.prev = topFrame;
+ sf.pos = 0;
+ topFrame = &sf;
+ if (t == NULL) {
+  sf.pos=9057100;
+  ZthrowThisNil();
+ }
+ sf.pos=9057101;
+ Vw = Za(sizeof(YjUM));
+ sf.pos=9057102;
+ YKhn__YwtA__YxaJa(t, Averbose, *Znao(&t0, Vw, YjUM__YdXi_imt, 2));
+ sf.pos=9057103;
+ r = YbNW(Vw);
+ topFrame = sf.prev;
+ return r;
 }
 void YKhn__YwtA__YxaJa(YKhn *t, Tb Averbose, Tr Aw) {
  Zsf sf;
@@ -4747,7 +5080,7 @@ Tc *YKhn__Ytlm_I_imt[] = {
  (Tc*)0, /* MEModule__COutOfMemory.ToString - YKhn__YwtA__YH0V */
  (Tc*)YKhn__YwtA__YxaJa, /* MEModule__COutOfMemory.writeTo - YKhn__YwtA__YxaJa */
  (Tc*)YKhn__YwtA__YxaJ, /* MEModule__COutOfMemory.writeTo - YKhn__YwtA__YxaJ */
- (Tc*)0, /* MEModule__COutOfMemory.toString - YKhn__YwtA__Yoww */
+ (Tc*)YKhn__YwtA__Yoww, /* MEModule__COutOfMemory.toString - YKhn__YwtA__Yoww */
  (Tc*)0, /* MEModule__COutOfMemory.getMessage - YKhn__YwtA__YCzX */
  (Tc*)0, /* MEModule__COutOfMemory.getPos - YKhn__YwtA__YvCK */
  (Tc*)0, /* MEModule__COutOfMemory.getBacktrace - YKhn__YwtA__Y4bq */
@@ -4780,6 +5113,27 @@ Y1uN *Y1uN__YwtA__YRHR(Y1uN *t, Tc *Amsg) {
  t->Vbacktrace = (sf.pos=3208604, MZ__backtrace(1, -1));
  topFrame = sf.prev;
  return t;
+}
+Tc *Y1uN__YwtA__Yoww(Y1uN *t, Tb Averbose) {
+ Zsf sf;
+ Tc *r = 0;
+ YjUM *Vw = 0;
+ Tr t0 = {NULL};
+ sf.prev = topFrame;
+ sf.pos = 0;
+ topFrame = &sf;
+ if (t == NULL) {
+  sf.pos=7911000;
+  ZthrowThisNil();
+ }
+ sf.pos=7911001;
+ Vw = Za(sizeof(YjUM));
+ sf.pos=7911002;
+ Y1uN__YwtA__YxaJa(t, Averbose, *Znao(&t0, Vw, YjUM__YdXi_imt, 2));
+ sf.pos=7911003;
+ r = YbNW(Vw);
+ topFrame = sf.prev;
+ return r;
 }
 void Y1uN__YwtA__YxaJa(Y1uN *t, Tb Averbose, Tr Aw) {
  Zsf sf;
@@ -4878,7 +5232,7 @@ Tc *Y1uN__Ytlm_I_imt[] = {
  (Tc*)0, /* MEModule__CNilAccess.ToString - Y1uN__YwtA__YH0V */
  (Tc*)Y1uN__YwtA__YxaJa, /* MEModule__CNilAccess.writeTo - Y1uN__YwtA__YxaJa */
  (Tc*)Y1uN__YwtA__YxaJ, /* MEModule__CNilAccess.writeTo - Y1uN__YwtA__YxaJ */
- (Tc*)0, /* MEModule__CNilAccess.toString - Y1uN__YwtA__Yoww */
+ (Tc*)Y1uN__YwtA__Yoww, /* MEModule__CNilAccess.toString - Y1uN__YwtA__Yoww */
  (Tc*)0, /* MEModule__CNilAccess.getMessage - Y1uN__YwtA__YCzX */
  (Tc*)0, /* MEModule__CNilAccess.getPos - Y1uN__YwtA__YvCK */
  (Tc*)0, /* MEModule__CNilAccess.getBacktrace - Y1uN__YwtA__Y4bq */
@@ -4917,6 +5271,27 @@ YAxe *YAxe__YwtA__YRHR(YAxe *t, Tc *Amsg) {
  t->Vbacktrace = (sf.pos=7358004, MZ__backtrace(1, -1));
  topFrame = sf.prev;
  return t;
+}
+Tc *YAxe__YwtA__Yoww(YAxe *t, Tb Averbose) {
+ Zsf sf;
+ Tc *r = 0;
+ YjUM *Vw = 0;
+ Tr t0 = {NULL};
+ sf.prev = topFrame;
+ sf.pos = 0;
+ topFrame = &sf;
+ if (t == NULL) {
+  sf.pos=1829200;
+  ZthrowThisNil();
+ }
+ sf.pos=1829201;
+ Vw = Za(sizeof(YjUM));
+ sf.pos=1829202;
+ YAxe__YwtA__YxaJa(t, Averbose, *Znao(&t0, Vw, YjUM__YdXi_imt, 2));
+ sf.pos=1829203;
+ r = YbNW(Vw);
+ topFrame = sf.prev;
+ return r;
 }
 void YAxe__YwtA__YxaJa(YAxe *t, Tb Averbose, Tr Aw) {
  Zsf sf;
@@ -5015,7 +5390,7 @@ Tc *YAxe__Ytlm_I_imt[] = {
  (Tc*)0, /* MEModule__CMemoryAccess.ToString - YAxe__YwtA__YH0V */
  (Tc*)YAxe__YwtA__YxaJa, /* MEModule__CMemoryAccess.writeTo - YAxe__YwtA__YxaJa */
  (Tc*)YAxe__YwtA__YxaJ, /* MEModule__CMemoryAccess.writeTo - YAxe__YwtA__YxaJ */
- (Tc*)0, /* MEModule__CMemoryAccess.toString - YAxe__YwtA__Yoww */
+ (Tc*)YAxe__YwtA__Yoww, /* MEModule__CMemoryAccess.toString - YAxe__YwtA__Yoww */
  (Tc*)0, /* MEModule__CMemoryAccess.getMessage - YAxe__YwtA__YCzX */
  (Tc*)0, /* MEModule__CMemoryAccess.getPos - YAxe__YwtA__YvCK */
  (Tc*)0, /* MEModule__CMemoryAccess.getBacktrace - YAxe__YwtA__Y4bq */
@@ -5081,6 +5456,27 @@ YVNj *YVNj__YwtA__YRHR(YVNj *t, Tc *Amsg) {
  t->Vbacktrace = (sf.pos=5337704, MZ__backtrace(1, -1));
  topFrame = sf.prev;
  return t;
+}
+Tc *YVNj__YwtA__Yoww(YVNj *t, Tb Averbose) {
+ Zsf sf;
+ Tc *r = 0;
+ YjUM *Vw = 0;
+ Tr t0 = {NULL};
+ sf.prev = topFrame;
+ sf.pos = 0;
+ topFrame = &sf;
+ if (t == NULL) {
+  sf.pos=9345300;
+  ZthrowThisNil();
+ }
+ sf.pos=9345301;
+ Vw = Za(sizeof(YjUM));
+ sf.pos=9345302;
+ YVNj__YwtA__YxaJa(t, Averbose, *Znao(&t0, Vw, YjUM__YdXi_imt, 2));
+ sf.pos=9345303;
+ r = YbNW(Vw);
+ topFrame = sf.prev;
+ return r;
 }
 void YVNj__YwtA__YxaJa(YVNj *t, Tb Averbose, Tr Aw) {
  Zsf sf;
@@ -5179,7 +5575,7 @@ Tc *YVNj__Ytlm_I_imt[] = {
  (Tc*)0, /* MEModule__CInit.ToString - YVNj__YwtA__YH0V */
  (Tc*)YVNj__YwtA__YxaJa, /* MEModule__CInit.writeTo - YVNj__YwtA__YxaJa */
  (Tc*)YVNj__YwtA__YxaJ, /* MEModule__CInit.writeTo - YVNj__YwtA__YxaJ */
- (Tc*)0, /* MEModule__CInit.toString - YVNj__YwtA__Yoww */
+ (Tc*)YVNj__YwtA__Yoww, /* MEModule__CInit.toString - YVNj__YwtA__Yoww */
  (Tc*)0, /* MEModule__CInit.getMessage - YVNj__YwtA__YCzX */
  (Tc*)0, /* MEModule__CInit.getPos - YVNj__YwtA__YvCK */
  (Tc*)0, /* MEModule__CInit.getBacktrace - YVNj__YwtA__Y4bq */
@@ -5212,6 +5608,27 @@ Yalz *Yalz__YwtA__YRHR(Yalz *t, Tc *Amsg) {
  t->Vbacktrace = (sf.pos=6059304, MZ__backtrace(1, -1));
  topFrame = sf.prev;
  return t;
+}
+Tc *Yalz__YwtA__Yoww(Yalz *t, Tb Averbose) {
+ Zsf sf;
+ Tc *r = 0;
+ YjUM *Vw = 0;
+ Tr t0 = {NULL};
+ sf.prev = topFrame;
+ sf.pos = 0;
+ topFrame = &sf;
+ if (t == NULL) {
+  sf.pos=5657300;
+  ZthrowThisNil();
+ }
+ sf.pos=5657301;
+ Vw = Za(sizeof(YjUM));
+ sf.pos=5657302;
+ Yalz__YwtA__YxaJa(t, Averbose, *Znao(&t0, Vw, YjUM__YdXi_imt, 2));
+ sf.pos=5657303;
+ r = YbNW(Vw);
+ topFrame = sf.prev;
+ return r;
 }
 void Yalz__YwtA__YxaJa(Yalz *t, Tb Averbose, Tr Aw) {
  Zsf sf;
@@ -5310,7 +5727,7 @@ Tc *Yalz__Ytlm_I_imt[] = {
  (Tc*)0, /* MEModule__CBadValue.ToString - Yalz__YwtA__YH0V */
  (Tc*)Yalz__YwtA__YxaJa, /* MEModule__CBadValue.writeTo - Yalz__YwtA__YxaJa */
  (Tc*)Yalz__YwtA__YxaJ, /* MEModule__CBadValue.writeTo - Yalz__YwtA__YxaJ */
- (Tc*)0, /* MEModule__CBadValue.toString - Yalz__YwtA__Yoww */
+ (Tc*)Yalz__YwtA__Yoww, /* MEModule__CBadValue.toString - Yalz__YwtA__Yoww */
  (Tc*)0, /* MEModule__CBadValue.getMessage - Yalz__YwtA__YCzX */
  (Tc*)0, /* MEModule__CBadValue.getPos - Yalz__YwtA__YvCK */
  (Tc*)0, /* MEModule__CBadValue.getBacktrace - Yalz__YwtA__Y4bq */
@@ -5343,6 +5760,27 @@ Yw3O *Yw3O__Yalz__YwtA__YRHR(Yw3O *t, Tc *Amsg) {
  t->Vbacktrace = (sf.pos=5638104, MZ__backtrace(1, -1));
  topFrame = sf.prev;
  return t;
+}
+Tc *Yw3O__Yalz__YwtA__Yoww(Yw3O *t, Tb Averbose) {
+ Zsf sf;
+ Tc *r = 0;
+ YjUM *Vw = 0;
+ Tr t0 = {NULL};
+ sf.prev = topFrame;
+ sf.pos = 0;
+ topFrame = &sf;
+ if (t == NULL) {
+  sf.pos=8398500;
+  ZthrowThisNil();
+ }
+ sf.pos=8398501;
+ Vw = Za(sizeof(YjUM));
+ sf.pos=8398502;
+ Yw3O__Yalz__YwtA__YxaJa(t, Averbose, *Znao(&t0, Vw, YjUM__YdXi_imt, 2));
+ sf.pos=8398503;
+ r = YbNW(Vw);
+ topFrame = sf.prev;
+ return r;
 }
 void Yw3O__Yalz__YwtA__YxaJ(Yw3O *t, Tr Aw) {
  Zsf sf;
@@ -5441,7 +5879,7 @@ Tc *Yw3O__Ytlm_I_imt[] = {
  (Tc*)0, /* MEModule__COutOfRange.ToString - Yw3O__Yalz__YwtA__YH0V */
  (Tc*)Yw3O__Yalz__YwtA__YxaJa, /* MEModule__COutOfRange.writeTo - Yw3O__Yalz__YwtA__YxaJa */
  (Tc*)Yw3O__Yalz__YwtA__YxaJ, /* MEModule__COutOfRange.writeTo - Yw3O__Yalz__YwtA__YxaJ */
- (Tc*)0, /* MEModule__COutOfRange.toString - Yw3O__Yalz__YwtA__Yoww */
+ (Tc*)Yw3O__Yalz__YwtA__Yoww, /* MEModule__COutOfRange.toString - Yw3O__Yalz__YwtA__Yoww */
  (Tc*)0, /* MEModule__COutOfRange.getMessage - Yw3O__Yalz__YwtA__YCzX */
  (Tc*)0, /* MEModule__COutOfRange.getPos - Yw3O__Yalz__YwtA__YvCK */
  (Tc*)0, /* MEModule__COutOfRange.getBacktrace - Yw3O__Yalz__YwtA__Y4bq */
@@ -5474,6 +5912,27 @@ Y2EX *Y2EX__Yalz__YwtA__YRHR(Y2EX *t, Tc *Amsg) {
  t->Vbacktrace = (sf.pos=2958504, MZ__backtrace(1, -1));
  topFrame = sf.prev;
  return t;
+}
+Tc *Y2EX__Yalz__YwtA__Yoww(Y2EX *t, Tb Averbose) {
+ Zsf sf;
+ Tc *r = 0;
+ YjUM *Vw = 0;
+ Tr t0 = {NULL};
+ sf.prev = topFrame;
+ sf.pos = 0;
+ topFrame = &sf;
+ if (t == NULL) {
+  sf.pos=6792500;
+  ZthrowThisNil();
+ }
+ sf.pos=6792501;
+ Vw = Za(sizeof(YjUM));
+ sf.pos=6792502;
+ Y2EX__Yalz__YwtA__YxaJa(t, Averbose, *Znao(&t0, Vw, YjUM__YdXi_imt, 2));
+ sf.pos=6792503;
+ r = YbNW(Vw);
+ topFrame = sf.prev;
+ return r;
 }
 void Y2EX__Yalz__YwtA__YxaJ(Y2EX *t, Tr Aw) {
  Zsf sf;
@@ -5572,7 +6031,7 @@ Tc *Y2EX__Ytlm_I_imt[] = {
  (Tc*)0, /* MEModule__CKeyNotFound.ToString - Y2EX__Yalz__YwtA__YH0V */
  (Tc*)Y2EX__Yalz__YwtA__YxaJa, /* MEModule__CKeyNotFound.writeTo - Y2EX__Yalz__YwtA__YxaJa */
  (Tc*)Y2EX__Yalz__YwtA__YxaJ, /* MEModule__CKeyNotFound.writeTo - Y2EX__Yalz__YwtA__YxaJ */
- (Tc*)0, /* MEModule__CKeyNotFound.toString - Y2EX__Yalz__YwtA__Yoww */
+ (Tc*)Y2EX__Yalz__YwtA__Yoww, /* MEModule__CKeyNotFound.toString - Y2EX__Yalz__YwtA__Yoww */
  (Tc*)0, /* MEModule__CKeyNotFound.getMessage - Y2EX__Yalz__YwtA__YCzX */
  (Tc*)0, /* MEModule__CKeyNotFound.getPos - Y2EX__Yalz__YwtA__YvCK */
  (Tc*)0, /* MEModule__CKeyNotFound.getBacktrace - Y2EX__Yalz__YwtA__Y4bq */
@@ -5611,6 +6070,27 @@ YX0i *YX0i__Yalz__YwtA__YRHR(YX0i *t, Tc *Amsg) {
  t->Vbacktrace = (sf.pos=8500004, MZ__backtrace(1, -1));
  topFrame = sf.prev;
  return t;
+}
+Tc *YX0i__Yalz__YwtA__Yoww(YX0i *t, Tb Averbose) {
+ Zsf sf;
+ Tc *r = 0;
+ YjUM *Vw = 0;
+ Tr t0 = {NULL};
+ sf.prev = topFrame;
+ sf.pos = 0;
+ topFrame = &sf;
+ if (t == NULL) {
+  sf.pos=498400;
+  ZthrowThisNil();
+ }
+ sf.pos=498401;
+ Vw = Za(sizeof(YjUM));
+ sf.pos=498402;
+ YX0i__Yalz__YwtA__YxaJa(t, Averbose, *Znao(&t0, Vw, YjUM__YdXi_imt, 2));
+ sf.pos=498403;
+ r = YbNW(Vw);
+ topFrame = sf.prev;
+ return r;
 }
 void YX0i__Yalz__YwtA__YxaJ(YX0i *t, Tr Aw) {
  Zsf sf;
@@ -5709,7 +6189,7 @@ Tc *YX0i__Ytlm_I_imt[] = {
  (Tc*)0, /* MEModule__CKeyExists.ToString - YX0i__Yalz__YwtA__YH0V */
  (Tc*)YX0i__Yalz__YwtA__YxaJa, /* MEModule__CKeyExists.writeTo - YX0i__Yalz__YwtA__YxaJa */
  (Tc*)YX0i__Yalz__YwtA__YxaJ, /* MEModule__CKeyExists.writeTo - YX0i__Yalz__YwtA__YxaJ */
- (Tc*)0, /* MEModule__CKeyExists.toString - YX0i__Yalz__YwtA__Yoww */
+ (Tc*)YX0i__Yalz__YwtA__Yoww, /* MEModule__CKeyExists.toString - YX0i__Yalz__YwtA__Yoww */
  (Tc*)0, /* MEModule__CKeyExists.getMessage - YX0i__Yalz__YwtA__YCzX */
  (Tc*)0, /* MEModule__CKeyExists.getPos - YX0i__Yalz__YwtA__YvCK */
  (Tc*)0, /* MEModule__CKeyExists.getBacktrace - YX0i__Yalz__YwtA__Y4bq */
@@ -5748,6 +6228,27 @@ YP_P *YP_P__Yalz__YwtA__YRHR(YP_P *t, Tc *Amsg) {
  t->Vbacktrace = (sf.pos=4520904, MZ__backtrace(1, -1));
  topFrame = sf.prev;
  return t;
+}
+Tc *YP_P__Yalz__YwtA__Yoww(YP_P *t, Tb Averbose) {
+ Zsf sf;
+ Tc *r = 0;
+ YjUM *Vw = 0;
+ Tr t0 = {NULL};
+ sf.prev = topFrame;
+ sf.pos = 0;
+ topFrame = &sf;
+ if (t == NULL) {
+  sf.pos=1391700;
+  ZthrowThisNil();
+ }
+ sf.pos=1391701;
+ Vw = Za(sizeof(YjUM));
+ sf.pos=1391702;
+ YP_P__Yalz__YwtA__YxaJa(t, Averbose, *Znao(&t0, Vw, YjUM__YdXi_imt, 2));
+ sf.pos=1391703;
+ r = YbNW(Vw);
+ topFrame = sf.prev;
+ return r;
 }
 void YP_P__Yalz__YwtA__YxaJ(YP_P *t, Tr Aw) {
  Zsf sf;
@@ -5846,7 +6347,7 @@ Tc *YP_P__Ytlm_I_imt[] = {
  (Tc*)0, /* MEModule__CIllegalByte.ToString - YP_P__Yalz__YwtA__YH0V */
  (Tc*)YP_P__Yalz__YwtA__YxaJa, /* MEModule__CIllegalByte.writeTo - YP_P__Yalz__YwtA__YxaJa */
  (Tc*)YP_P__Yalz__YwtA__YxaJ, /* MEModule__CIllegalByte.writeTo - YP_P__Yalz__YwtA__YxaJ */
- (Tc*)0, /* MEModule__CIllegalByte.toString - YP_P__Yalz__YwtA__Yoww */
+ (Tc*)YP_P__Yalz__YwtA__Yoww, /* MEModule__CIllegalByte.toString - YP_P__Yalz__YwtA__Yoww */
  (Tc*)0, /* MEModule__CIllegalByte.getMessage - YP_P__Yalz__YwtA__YCzX */
  (Tc*)0, /* MEModule__CIllegalByte.getPos - YP_P__Yalz__YwtA__YvCK */
  (Tc*)0, /* MEModule__CIllegalByte.getBacktrace - YP_P__Yalz__YwtA__Y4bq */
@@ -5879,6 +6380,27 @@ YzSI *YzSI__Ylz1__YwtA__YRHR(YzSI *t, Tc *Amsg) {
  t->Vbacktrace = (sf.pos=7347104, MZ__backtrace(1, -1));
  topFrame = sf.prev;
  return t;
+}
+Tc *YzSI__Ylz1__YwtA__Yoww(YzSI *t, Tb Averbose) {
+ Zsf sf;
+ Tc *r = 0;
+ YjUM *Vw = 0;
+ Tr t0 = {NULL};
+ sf.prev = topFrame;
+ sf.pos = 0;
+ topFrame = &sf;
+ if (t == NULL) {
+  sf.pos=6943500;
+  ZthrowThisNil();
+ }
+ sf.pos=6943501;
+ Vw = Za(sizeof(YjUM));
+ sf.pos=6943502;
+ YzSI__Ylz1__YwtA__YxaJa(t, Averbose, *Znao(&t0, Vw, YjUM__YdXi_imt, 2));
+ sf.pos=6943503;
+ r = YbNW(Vw);
+ topFrame = sf.prev;
+ return r;
 }
 void YzSI__Ylz1__YwtA__YxaJ(YzSI *t, Tr Aw) {
  Zsf sf;
@@ -5977,7 +6499,7 @@ Tc *YzSI__Ytlm_I_imt[] = {
  (Tc*)0, /* MEModule__CDivideByZero.ToString - YzSI__Ylz1__YwtA__YH0V */
  (Tc*)YzSI__Ylz1__YwtA__YxaJa, /* MEModule__CDivideByZero.writeTo - YzSI__Ylz1__YwtA__YxaJa */
  (Tc*)YzSI__Ylz1__YwtA__YxaJ, /* MEModule__CDivideByZero.writeTo - YzSI__Ylz1__YwtA__YxaJ */
- (Tc*)0, /* MEModule__CDivideByZero.toString - YzSI__Ylz1__YwtA__Yoww */
+ (Tc*)YzSI__Ylz1__YwtA__Yoww, /* MEModule__CDivideByZero.toString - YzSI__Ylz1__YwtA__Yoww */
  (Tc*)0, /* MEModule__CDivideByZero.getMessage - YzSI__Ylz1__YwtA__YCzX */
  (Tc*)0, /* MEModule__CDivideByZero.getPos - YzSI__Ylz1__YwtA__YvCK */
  (Tc*)0, /* MEModule__CDivideByZero.getBacktrace - YzSI__Ylz1__YwtA__Y4bq */
@@ -6004,6 +6526,27 @@ YXKl *YXKl__YwtA__YRHR(YXKl *t, Tc *Amsg) {
  t->Vbacktrace = (sf.pos=4829904, MZ__backtrace(1, -1));
  topFrame = sf.prev;
  return t;
+}
+Tc *YXKl__YwtA__Yoww(YXKl *t, Tb Averbose) {
+ Zsf sf;
+ Tc *r = 0;
+ YjUM *Vw = 0;
+ Tr t0 = {NULL};
+ sf.prev = topFrame;
+ sf.pos = 0;
+ topFrame = &sf;
+ if (t == NULL) {
+  sf.pos=3219100;
+  ZthrowThisNil();
+ }
+ sf.pos=3219101;
+ Vw = Za(sizeof(YjUM));
+ sf.pos=3219102;
+ YXKl__YwtA__YxaJa(t, Averbose, *Znao(&t0, Vw, YjUM__YdXi_imt, 2));
+ sf.pos=3219103;
+ r = YbNW(Vw);
+ topFrame = sf.prev;
+ return r;
 }
 void YXKl__YwtA__YxaJa(YXKl *t, Tb Averbose, Tr Aw) {
  Zsf sf;
@@ -6102,7 +6645,7 @@ Tc *YXKl__Ytlm_I_imt[] = {
  (Tc*)0, /* MEModule__CIOError.ToString - YXKl__YwtA__YH0V */
  (Tc*)YXKl__YwtA__YxaJa, /* MEModule__CIOError.writeTo - YXKl__YwtA__YxaJa */
  (Tc*)YXKl__YwtA__YxaJ, /* MEModule__CIOError.writeTo - YXKl__YwtA__YxaJ */
- (Tc*)0, /* MEModule__CIOError.toString - YXKl__YwtA__Yoww */
+ (Tc*)YXKl__YwtA__Yoww, /* MEModule__CIOError.toString - YXKl__YwtA__Yoww */
  (Tc*)0, /* MEModule__CIOError.getMessage - YXKl__YwtA__YCzX */
  (Tc*)0, /* MEModule__CIOError.getPos - YXKl__YwtA__YvCK */
  (Tc*)0, /* MEModule__CIOError.getBacktrace - YXKl__YwtA__Y4bq */
@@ -6129,6 +6672,27 @@ YuDC *YdhH(YuDC *t) {
  t->Vbacktrace = (sf.pos=8723504, MZ__backtrace(1, -1));
  topFrame = sf.prev;
  return t;
+}
+Tc *YuDC__YwtA__Yoww(YuDC *t, Tb Averbose) {
+ Zsf sf;
+ Tc *r = 0;
+ YjUM *Vw = 0;
+ Tr t0 = {NULL};
+ sf.prev = topFrame;
+ sf.pos = 0;
+ topFrame = &sf;
+ if (t == NULL) {
+  sf.pos=1676800;
+  ZthrowThisNil();
+ }
+ sf.pos=1676801;
+ Vw = Za(sizeof(YjUM));
+ sf.pos=1676802;
+ YuDC__YwtA__YxaJa(t, Averbose, *Znao(&t0, Vw, YjUM__YdXi_imt, 2));
+ sf.pos=1676803;
+ r = YbNW(Vw);
+ topFrame = sf.prev;
+ return r;
 }
 void YuDC__YwtA__YxaJa(YuDC *t, Tb Averbose, Tr Aw) {
  Zsf sf;
@@ -6227,7 +6791,7 @@ Tc *YuDC__Ytlm_I_imt[] = {
  (Tc*)0, /* MEModule__CWrongType.ToString - YuDC__YwtA__YH0V */
  (Tc*)YuDC__YwtA__YxaJa, /* MEModule__CWrongType.writeTo - YuDC__YwtA__YxaJa */
  (Tc*)YuDC__YwtA__YxaJ, /* MEModule__CWrongType.writeTo - YuDC__YwtA__YxaJ */
- (Tc*)0, /* MEModule__CWrongType.toString - YuDC__YwtA__Yoww */
+ (Tc*)YuDC__YwtA__Yoww, /* MEModule__CWrongType.toString - YuDC__YwtA__Yoww */
  (Tc*)0, /* MEModule__CWrongType.getMessage - YuDC__YwtA__YCzX */
  (Tc*)0, /* MEModule__CWrongType.getPos - YuDC__YwtA__YvCK */
  (Tc*)0, /* MEModule__CWrongType.getBacktrace - YuDC__YwtA__Y4bq */
@@ -6263,6 +6827,27 @@ YrHq *YrHq__YwtA__YRHR(YrHq *t, Tc *Amsg) {
  t->Vbacktrace = (sf.pos=7808204, MZ__backtrace(1, -1));
  topFrame = sf.prev;
  return t;
+}
+Tc *YrHq__YwtA__Yoww(YrHq *t, Tb Averbose) {
+ Zsf sf;
+ Tc *r = 0;
+ YjUM *Vw = 0;
+ Tr t0 = {NULL};
+ sf.prev = topFrame;
+ sf.pos = 0;
+ topFrame = &sf;
+ if (t == NULL) {
+  sf.pos=7987400;
+  ZthrowThisNil();
+ }
+ sf.pos=7987401;
+ Vw = Za(sizeof(YjUM));
+ sf.pos=7987402;
+ YrHq__YwtA__YxaJa(t, Averbose, *Znao(&t0, Vw, YjUM__YdXi_imt, 2));
+ sf.pos=7987403;
+ r = YbNW(Vw);
+ topFrame = sf.prev;
+ return r;
 }
 void YrHq__YwtA__YxaJa(YrHq *t, Tb Averbose, Tr Aw) {
  Zsf sf;
@@ -6361,7 +6946,7 @@ Tc *YrHq__Ytlm_I_imt[] = {
  (Tc*)0, /* MEModule__CInternal.ToString - YrHq__YwtA__YH0V */
  (Tc*)YrHq__YwtA__YxaJa, /* MEModule__CInternal.writeTo - YrHq__YwtA__YxaJa */
  (Tc*)YrHq__YwtA__YxaJ, /* MEModule__CInternal.writeTo - YrHq__YwtA__YxaJ */
- (Tc*)0, /* MEModule__CInternal.toString - YrHq__YwtA__Yoww */
+ (Tc*)YrHq__YwtA__Yoww, /* MEModule__CInternal.toString - YrHq__YwtA__Yoww */
  (Tc*)0, /* MEModule__CInternal.getMessage - YrHq__YwtA__YCzX */
  (Tc*)0, /* MEModule__CInternal.getPos - YrHq__YwtA__YvCK */
  (Tc*)0, /* MEModule__CInternal.getBacktrace - YrHq__YwtA__Y4bq */
@@ -7363,7 +7948,7 @@ void Ygkj(Te Alevel, Tc *Amsg, YkxB *Apos, Tbs Aflags) {
  }
  if ((Alevel == 7))
  {
-  Zexit(NULL, 10);
+  Zexit(Ypp_a(NULL, ((Tc*)&YQAha), 205, 7), 10);
  }
 YbRZ:
  return;
@@ -7927,7 +8512,7 @@ void YSUO(Tc *Amsg) {
   ((Ts (*)(void*, Tc*))(YeNQ.table[11]))(YeNQ.ptr, ZcS3(((Tc*)&YkFE), YzvW, ((Tc*)&Y15F)));
  }
  sf.pos=8529505;
- Zexit(NULL, 1);
+ Zexit(Ypp_a(NULL, ((Tc*)&Ye5Da), 456, 5), 1);
  topFrame = sf.prev;
  return;
 }
@@ -8170,7 +8755,7 @@ Yfan:
   }
  }
  sf.pos=2956062;
- Zexit(NULL, YMLU);
+ Zexit(Ypp_a(NULL, ((Tc*)&Ye5Da), 564, 5), YMLU);
  topFrame = sf.prev;
  return;
 }
@@ -8944,6 +9529,22 @@ To ToYs45[] = {
  {0, (Tt*)&string__T}, /* render */
 };
 Tto Ys45__T = {390, (Tc*)&YSv9, 0, ToYs45};
+void YouM(YQfU *t, Tc *As) {
+ Zsf sf;
+ sf.prev = topFrame;
+ sf.pos = 0;
+ topFrame = &sf;
+ if (t == NULL) {
+  sf.pos=7783500;
+  ZthrowThisNil();
+ }
+ sf.pos=7783501;
+ t->Vstatusmsg = As;
+ sf.pos=7783502;
+ t->Vstatime = Y9Rj();
+ topFrame = sf.prev;
+ return;
+}
 Tc *YoQj(YQfU *t) {
  Zsf sf;
  Tc *r = 0;
@@ -8979,8 +9580,9 @@ Tc *YoQj(YQfU *t) {
 }
 void YWKz(YQfU *t) {
  Zsf sf;
- Tc *Vw = NULL;
- Tr Vf = {NULL};
+ volatile Tc *Vw = NULL;
+ volatile Tr Vf = {NULL};
+ volatile Tr Ve = {NULL};
  sf.prev = topFrame;
  sf.pos = 0;
  topFrame = &sf;
@@ -8994,11 +9596,67 @@ void YWKz(YQfU *t) {
   sf.pos=8257502;
   Vw = YoQj(t);
   sf.pos=8257503;
-  Vf = YiBk(t->Vfilename, 1);
-  sf.pos=8257504;
-  ((Ts (*)(void*, Tc*))(Vf.table[1]))(Vf.ptr, Vw);
-  sf.pos=8257505;
-  ((Ts (*)(void*))(Vf.table[35]))(Vf.ptr);
+  {
+   volatile int caught = 0;
+   Tn *te = (&Zenv);
+   int try_index = te->tryCtxUsed;
+   volatile int did_jump = 0;
+   sf.pos=8257504;
+   ZtryDeeper(te, &sf);
+   if (setjmp(te->tryCtx[try_index].jmpBuf) != 0) {
+    ++did_jump;
+    topFrame = &sf;
+   }
+   if (did_jump == 0) /* TRY */
+   {
+    sf.pos=8257505;
+    Vf = YiBk(t->Vfilename, 1);
+    te->tryCtxUsed = try_index;
+    did_jump = 1; caught = 1; /* ELSE */
+    {
+     sf.pos=8257506;
+     if ((((((Tr)Vf)).ptr) == NULL))
+     {
+      sf.pos=8257507;
+      YouM(t, ZcS3(((Tc*)&YU14), t->Vfilename, ((Tc*)&YiHc)));
+     }
+     else
+     {
+      sf.pos=8257508;
+      ((Ts (*)(void*, Tc*))(((Tr)Vf).table[1]))(((Tr)Vf).ptr, ((Tc*)Vw));
+      sf.pos=8257509;
+      ((Ts (*)(void*))(((Tr)Vf).table[35]))(((Tr)Vf).ptr);
+      sf.pos=8257510;
+      {
+       volatile Ti Vj;
+       Tfr Zf6;
+       ZforRangeNew(0, (t->Vn_erows - 1), 0, 1, &Zf6);
+       for (ZforRangeGetInt(&Zf6, &Vj); ZforRangeContInt(&Zf6); ZforRangeNextInt(&Zf6, &Vj)) {
+       sf.pos=8257511;
+       ((Ys45 *)ZListGetPtr(t->Verows, ((Ti)Vj)))->Vorig = ((Ys45 *)ZListGetPtr(t->Verows, ((Ti)Vj)))->Vtxt;
+       sf.pos=8257512;
+       }
+      }
+      sf.pos=8257513;
+      YouM(t, ZcS3(((Tc*)&YxQ_), Zint2string(ZstringSize(((Tc*)Vw))), ((Tc*)&YPwc)));
+     }
+    }
+   }
+   te->tryCtxUsed = try_index;
+   if (did_jump == 1 && !caught && ((te->thrown[te->thrownUsed - 1]).type == 21)) /* CATCH */
+   {
+    Ve = te->thrown[--te->thrownUsed];
+    caught = 1;
+    sf.pos=8257514;
+    YouM(t, ZcS(((Tc*)&Y7hz), ((Tc* (*)(void*, Tb))(((Tr)Ve).table[9]))(((Tr)Ve).ptr, 0)));
+   }
+   if ((did_jump == 1 && !caught) || did_jump > 1) Zrethrow();
+  }
+ }
+ else
+ {
+  sf.pos=8257515;
+  YouM(t, ((Tc*)&Yh33));
  }
  topFrame = sf.prev;
  return;
@@ -9110,10 +9768,11 @@ void YneO(YQfU *t) {
 }
 void YaZr(YQfU *t, Tc *Afname) {
  Zsf sf;
- Tr Vf = {NULL};
- Tl *Vlines = NULL;
- Tl *Zf1 = NULL;
- Tc *Vline = NULL;
+ volatile Tr Vf = {NULL};
+ volatile Tl *Vlines = NULL;
+ Tl *Zf5 = NULL;
+ volatile Tc *Vline = NULL;
+ volatile Tr Ve = {NULL};
  sf.prev = topFrame;
  sf.pos = 0;
  topFrame = &sf;
@@ -9122,32 +9781,64 @@ void YaZr(YQfU *t, Tc *Afname) {
   ZthrowThisNil();
  }
  sf.pos=6327801;
- Vf = YsGz(Afname);
- sf.pos=6327802;
- if ((((Vf).ptr) == NULL))
  {
-  sf.pos=6327803;
-  YqsW(ZcS3(((Tc*)&YBAF), Afname, ((Tc*)&Y3gH)));
- }
- sf.pos=6327804;
- t->Vfilename = Afname;
- sf.pos=6327805;
- Vlines = ((Tl* (*)(void*))(Vf.table[30]))(Vf.ptr);
- sf.pos=6327806;
- {
-  Tfl Zf1i;
-  Zf1 = Vlines;
-  Zf1i.l = Zf1;
-  Zf1i.valp = (void*)&Vline;
-  Zf1i.i = 0;
-  for (; ZforListPtrCont(&Zf1i); ) {
-  sf.pos=6327807;
-  Y1dH(t, Vline);
-  sf.pos=6327808;
+  volatile int caught = 0;
+  Tn *te = (&Zenv);
+  int try_index = te->tryCtxUsed;
+  volatile int did_jump = 0;
+  sf.pos=6327802;
+  ZtryDeeper(te, &sf);
+  if (setjmp(te->tryCtx[try_index].jmpBuf) != 0) {
+   ++did_jump;
+   topFrame = &sf;
   }
+  if (did_jump == 0) /* TRY */
+  {
+   sf.pos=6327803;
+   Vf = YsGz(((Tc*)Afname));
+   te->tryCtxUsed = try_index;
+   did_jump = 1; caught = 1; /* ELSE */
+   {
+    sf.pos=6327804;
+    if ((((((Tr)Vf)).ptr) == NULL))
+    {
+     sf.pos=6327805;
+     YouM(t, ZcS3(((Tc*)&YU14), ((Tc*)Afname), ((Tc*)&YiHc)));
+    }
+    else
+    {
+     sf.pos=6327806;
+     t->Vfilename = ((Tc*)Afname);
+     sf.pos=6327807;
+     Vlines = ((Tl* (*)(void*))(((Tr)Vf).table[30]))(((Tr)Vf).ptr);
+     sf.pos=6327808;
+     {
+      Tfl Zf5i;
+      Zf5 = ((Tl*)Vlines);
+      Zf5i.l = Zf5;
+      Zf5i.valp = (void*)&Vline;
+      Zf5i.i = 0;
+      for (; ZforListPtrCont(&Zf5i); ) {
+      sf.pos=6327809;
+      Y1dH(t, ((Tc*)Vline));
+      sf.pos=6327810;
+      }
+     }
+     sf.pos=6327811;
+     ((Ts (*)(void*))(((Tr)Vf).table[35]))(((Tr)Vf).ptr);
+    }
+   }
+  }
+  te->tryCtxUsed = try_index;
+  if (did_jump == 1 && !caught && ((te->thrown[te->thrownUsed - 1]).type == 21)) /* CATCH */
+  {
+   Ve = te->thrown[--te->thrownUsed];
+   caught = 1;
+   sf.pos=6327812;
+   YouM(t, ZcS(((Tc*)&Y7hz), ((Tc* (*)(void*, Tb))(((Tr)Ve).table[9]))(((Tr)Ve).ptr, 0)));
+  }
+  if ((did_jump == 1 && !caught) || did_jump > 1) Zrethrow();
  }
- sf.pos=6327809;
- ((Ts (*)(void*))(Vf.table[35]))(Vf.ptr);
  topFrame = sf.prev;
  return;
 }
@@ -9282,33 +9973,29 @@ void Yeai(YQfU *t, Ti Ak) {
    }
     break;
   }
+ case 68:
+  {
+   sf.pos=1504529;
+   if ((Vr != NULL))
+   {
+    sf.pos=1504530;
+    ZListClearItem((Tl*)t->Verows, t->Vcy);
+    sf.pos=1504531;
+    --(t->Vn_erows);
+   }
+    break;
+  }
  }
- sf.pos=1504529;
+ sf.pos=1504532;
  Vr2 = ((((t->Vcy >= t->Vn_erows))) ? (NULL) : (((Ys45 *)ZListGetPtr(t->Verows, t->Vcy))));
- sf.pos=1504530;
+ sf.pos=1504533;
  Vsz = (((Vr2 != NULL)) ? (ZstringSize(Vr2->Vtxt)) : (0));
- sf.pos=1504531;
+ sf.pos=1504534;
  if ((t->Vcx > Vsz))
  {
-  sf.pos=1504532;
+  sf.pos=1504535;
   t->Vcx = Vsz;
  }
- topFrame = sf.prev;
- return;
-}
-void YouM(YQfU *t, Tc *As) {
- Zsf sf;
- sf.prev = topFrame;
- sf.pos = 0;
- topFrame = &sf;
- if (t == NULL) {
-  sf.pos=7783500;
-  ZthrowThisNil();
- }
- sf.pos=7783501;
- t->Vstatusmsg = As;
- sf.pos=7783502;
- t->Vstatime = Y9Rj();
  topFrame = sf.prev;
  return;
 }
@@ -9387,10 +10074,12 @@ YQfU *Yek3(YQfU *t) {
  sf.pos=1477411;
  t->Vrx = 0;
  sf.pos=1477412;
- t->Vorig_termios = malloc(sizeof(struct termios));
+ t->Vexpand = 1;
  sf.pos=1477413;
- t->Vcx = 0;
+ t->Vorig_termios = malloc(sizeof(struct termios));
  sf.pos=1477414;
+ t->Vcx = 0;
+ sf.pos=1477415;
  t->Vcy = 0;
  topFrame = sf.prev;
  return t;
@@ -9483,7 +10172,7 @@ int*c = &Vc;
   sf.pos=4026604;
   YdnK();
   sf.pos=4026605;
-  Zexit(NULL, 0);
+  Zexit(Ypp_a(NULL, ((Tc*)&Ya_Da), 446, 5), 0);
  }
  else
  {
@@ -9580,6 +10269,25 @@ int*c = &Vc;
     Yeai(Vec, Vc);
      break;
    }
+  case 9:
+   {
+    sf.pos=4026623;
+    if (Vec->Vexpand)
+    {
+     sf.pos=4026624;
+     {
+      Ti Vi;
+      Tfr Zf5;
+      ZforRangeNew(0, (Vec->Vts - 1), 0, 1, &Zf5);
+      for (ZforRangeGetInt(&Zf5, &Vi); ZforRangeContInt(&Zf5); ZforRangeNextInt(&Zf5, &Vi)) {
+      sf.pos=4026625;
+      YcHr(Vec, 32);
+      sf.pos=4026626;
+      }
+     }
+    }
+     break;
+   }
   case CTRL_KEY('l'):
    {
     rt = 2;
@@ -9588,15 +10296,15 @@ int*c = &Vc;
    }
   default:
    {
-    sf.pos=4026623;
+    sf.pos=4026627;
     if ((Vec->Vmode == 78))
     {
-     sf.pos=4026624;
+     sf.pos=4026628;
      Yeai(Vec, Vc);
     }
     else
     {
-     sf.pos=4026625;
+     sf.pos=4026629;
      YcHr(Vec, Vc);
     }
      break;
@@ -10074,6 +10782,9 @@ void ZimtInit(void) {
  }
  {
   YEro *p = 0;
+  YEro__Ytlm_I_imt[1] = (Tc*)((Tc*)&p->Vmessage - (Tc*)p);
+  YEro__Ytlm_I_imt[2] = (Tc*)((Tc*)&p->Vpos - (Tc*)p);
+  YEro__Ytlm_I_imt[3] = (Tc*)((Tc*)&p->Vbacktrace - (Tc*)p);
   ToYEro[1].off = (int)((Tc*)&p->Vmessage - (Tc*)p);
   ToYEro[2].off = (int)((Tc*)&p->Vpos - (Tc*)p);
   ToYEro[3].off = (int)((Tc*)&p->Vbacktrace - (Tc*)p);
@@ -10411,7 +11122,7 @@ int Fmain(void) {
   YaZr(Vec, ((Tc *)ZListGetPtr(YUgp(), 0)));
  }
  sf.pos=527005;
- YouM(Vec, ((Tc*)&YOA3));
+ YouM(Vec, ((Tc*)&YmOu));
  sf.pos=527006;
  while (1)
  {

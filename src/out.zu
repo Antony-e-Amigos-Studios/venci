@@ -176,11 +176,17 @@ CLASS EditorConfig
   int $rowoff
   int $coloff
   int $ts
+  bool $expand
   string $filename
   string $statusmsg
   Time_t $statime
   C(struct termios*) $orig_termios
 
+  PROC $setStatmsg(string s)
+    $statusmsg = s
+    $statime = TIME.current()
+  }
+  
   FUNC $rowsToStr() string
     string res = ""
     FOR j IN $erows
@@ -193,9 +199,24 @@ CLASS EditorConfig
     IF $filename != NIL
       string w = THIS.rowsToStr()
 
-      IO.File f = IO.fileWriter($filename, TRUE)
-      f.write(w)
-      f.close()
+      TRY
+        IO.File f = IO.fileWriter($filename, TRUE)
+      CATCH E.AccessDenied e
+        THIS.setStatmsg("(o.O?) | Error opening file: " .. e.toString(FALSE))
+      ELSE
+        IF f == NIL
+          THIS.setStatmsg("(T.T) | file: \($filename) doesn't exist!")
+        ELSE
+          f.write(w)
+          f.close()
+          FOR j IN 0 TO $n_erows - 1
+            $erows[j].orig = $erows[j].txt
+          }
+          THIS.setStatmsg("(\\^w^/) | \(w.Size()) bytes written")
+        }
+      }
+    ELSE
+      THIS.setStatmsg("(@_@) | no filename!")
     }
   }
 
@@ -246,16 +267,22 @@ CLASS EditorConfig
   }
   
   PROC $open(string fname)
-    IO.File f = IO.fileReader(fname)
-    IF f == NIL
-      die("couldn't open \(fname) for reading")
+    TRY
+      IO.File f = IO.fileReader(fname)
+    CATCH E.AccessDenied e
+      THIS.setStatmsg("(o.O?) | Error opening file: " .. e.toString(FALSE))
+    ELSE
+      IF f == NIL
+        THIS.setStatmsg("(T.T) | file: \(fname) doesn't exist!")
+      ELSE
+        $filename = fname
+        list<string> lines = f.readAllLines()
+        FOR line IN lines
+          THIS.appendRow(line)
+        }
+        f.close()
+      }
     }
-    $filename = fname
-    list<string> lines = f.readAllLines()
-    FOR line IN lines
-      THIS.appendRow(line)
-    }
-    f.close()
   }
 
   PROC $moveCursor(int k)
@@ -313,6 +340,11 @@ CLASS EditorConfig
           r.back()
           r.updateRow($ts)
         }
+      CASE 'D'
+        IF r != NIL
+          $erows.clear($cy)
+          $n_erows--
+        }
     }
 
     Erow r2 = ($cy >= $n_erows) ? NIL : $erows[$cy]
@@ -320,11 +352,6 @@ CLASS EditorConfig
     IF $cx > sz
       $cx = sz
     }
-  }
-
-  PROC $setStatmsg(string s)
-    $statusmsg = s
-    $statime = TIME.current()
   }
 
   FUNC $getWindowSize() status
@@ -355,6 +382,7 @@ CLASS EditorConfig
     $cols = 0
     $n_erows = 0
     $rx = 0
+    $expand = TRUE
     $orig_termios = C(malloc(sizeof(struct termios)))
 
     $cx = 0
@@ -458,6 +486,13 @@ int*c = &%c%;
       CASE C(DOWN); PROCEED
       CASE C(RIGHT)
         ec.moveCursor(c)
+
+      CASE '\t'
+        IF ec.expand
+          FOR i IN 0 TO ec.ts - 1
+            ec.insertChar(' ')
+          }
+        }
 
       CASE C(CTRL_KEY('l'))
         # this is the void, stuff that isnt 
@@ -655,7 +690,7 @@ FUNC Main() int
     ec.open(ARG.getRawList()[0])
   }
 
-  ec.setStatmsg("info: press Ctrl-Q to quit venci")
+  ec.setStatmsg("info: press Ctrl-Q to quit venci, press Ctrl-S to save")
 
   WHILE TRUE
     refreshScreen()
