@@ -587,6 +587,7 @@ struct YQfU__S {
  Tl *Verows;
  Ti Vn_erows;
  Ti Vrowoff;
+ Ti Vcoloff;
  struct termios* Vorig_termios;
 };
 extern Tto YQfU__T;
@@ -1161,7 +1162,7 @@ Tc YHVP[]="/home/tsuki/.zimbu/lib/ZModule.zu";
 Tc Ya_D[]="src/out.zu";
 Tc Yaa[]="";
 Tcpos ZcTbl0[]={
-{202,14},
+{210,14},
 };
 Tc Y_VO[]="ARG.Bool.NEW/1()";
 Tcpos ZcTbl3273[]={
@@ -1997,27 +1998,28 @@ Tcpos ZcTbl52386[]={
 };
 Tc YTMY[]="EditorConfig.NEW()";
 Tcpos ZcTbl14774[]={
-{188,3},
+{195,3},
 {1,13},
-{2,12},
-{3,11},
+{2,13},
+{3,12},
 {4,11},
 {5,11},
-{6,14},
-{7,19},
-{9,9},
+{6,11},
+{7,14},
+{8,19},
 {10,9},
+{11,9},
 };
 Tc YUQe[]="EditorConfig.appendRow()";
 Tcpos ZcTbl73728[]={
-{118,9},
+{127,9},
 {1,14},
 {2,5},
 {3,13},
 };
 Tc YM6u[]="EditorConfig.getWindowSize()";
 Tcpos ZcTbl70635[]={
-{172,9},
+{179,9},
 {1,4},
 {4,5},
 {5,7},
@@ -2029,7 +2031,7 @@ Tcpos ZcTbl70635[]={
 };
 Tc YnTk[]="EditorConfig.moveCursor()";
 Tcpos ZcTbl15045[]={
-{136,9},
+{145,9},
 {2,5},
 {3,35},
 {7,7},
@@ -2039,16 +2041,15 @@ Tcpos ZcTbl15045[]={
 {16,5},
 {18,9},
 {19,14},
-{22,9},
-{23,14},
-{26,9},
-{27,14},
-{30,9},
-{31,14},
+{22,12},
+{24,9},
+{25,14},
+{28,9},
+{29,14},
 };
 Tc Y3iP[]="EditorConfig.open()";
 Tcpos ZcTbl63278[]={
-{124,9},
+{133,9},
 {1,20},
 {2,5},
 {3,7},
@@ -2060,11 +2061,15 @@ Tcpos ZcTbl63278[]={
 };
 Tc YK_C[]="EditorConfig.scroll()";
 Tcpos ZcTbl77103[]={
-{108,9},
+{109,9},
 {1,5},
 {2,15},
 {5,5},
 {6,15},
+{9,5},
+{10,15},
+{13,5},
+{14,15},
 };
 Tc YegA[]="Erow.NEW()";
 Tcpos ZcTbl33010[]={
@@ -2251,7 +2256,7 @@ Tcpos ZcTbl84899[]={
 };
 Tc Y9QD[]="Main()";
 Tcpos ZcTbl5270[]={
-{405,3},
+{422,3},
 {1,3},
 {2,5},
 {4,3},
@@ -2310,7 +2315,7 @@ Tcpos ZcTbl18187[]={
 };
 Tc YrXP[]="clrscr()";
 Tcpos ZcTbl94330[]={
-{234,3},
+{242,3},
 {1,3},
 };
 Tc YXBg[]="die()";
@@ -2319,7 +2324,7 @@ Tcpos ZcTbl56087[]={
 };
 Tc YCgG[]="drawRows()";
 Tcpos ZcTbl31458[]={
-{282,15},
+{290,15},
 {1,3},
 {2,5},
 {3,7},
@@ -2334,16 +2339,23 @@ Tcpos ZcTbl31458[]={
 {10,9},
 {14,12},
 {16,12},
-{19,10},
-{22,8},
-{23,5},
-{24,10},
+{19,17},
+{20,39},
+{21,20},
+{22,7},
+{23,13},
+{25,7},
+{26,13},
+{28,10},
+{31,8},
+{32,5},
+{33,10},
 {1,3},
-{27,10},
+{36,10},
 };
 Tc YdWL[]="enableRawMode()";
 Tcpos ZcTbl25411[]={
-{214,4},
+{222,4},
 };
 Tc YetL[]="getCursorPosition()";
 Tcpos ZcTbl15576[]={
@@ -2381,15 +2393,15 @@ Tcpos ZcTbl15576[]={
 };
 Tc YA77[]="gotoxy()";
 Tcpos ZcTbl56063[]={
-{239,3},
+{247,3},
 };
 Tc YCn_[]="gotoxy_s()";
 Tcpos ZcTbl14477[]={
-{243,10},
+{251,10},
 };
 Tc YQ8H[]="processKeypress()";
 Tcpos ZcTbl40266[]={
-{248,4},
+{256,4},
 {3,5},
 {4,34},
 {5,3},
@@ -2408,7 +2420,7 @@ Tcpos ZcTbl40266[]={
 };
 Tc YRKs[]="readKey()";
 Tcpos ZcTbl79390[]={
-{332,4},
+{349,4},
 {4,4},
 {8,4},
 {11,3},
@@ -2453,7 +2465,7 @@ Tcpos ZcTbl79390[]={
 };
 Tc YClS[]="refreshScreen()";
 Tcpos ZcTbl56800[]={
-{313,3},
+{330,3},
 {2,15},
 {4,6},
 {5,6},
@@ -8473,6 +8485,18 @@ void YJA8(YQfU *t) {
   sf.pos=7710304;
   t->Vrowoff = ((t->Vcy - t->Vrows) + 1);
  }
+ sf.pos=7710305;
+ if ((t->Vcx < t->Vcoloff))
+ {
+  sf.pos=7710306;
+  t->Vcoloff = t->Vcx;
+ }
+ sf.pos=7710307;
+ if ((t->Vcx >= (t->Vcoloff + t->Vcols)))
+ {
+  sf.pos=7710308;
+  t->Vcoloff = ((t->Vcx - t->Vcols) + 1);
+ }
  topFrame = sf.prev;
  return;
 }
@@ -8587,29 +8611,25 @@ void Yeai(YQfU *t, Ti Ak) {
  case RIGHT:
   {
    sf.pos=1504510;
-   if ((t->Vcx != (t->Vcols - 1)))
-   {
-    sf.pos=1504511;
-    ++(t->Vcx);
-   }
+   ++(t->Vcx);
     break;
   }
  case UP:
   {
-   sf.pos=1504512;
+   sf.pos=1504511;
    if ((t->Vcy != 0))
    {
-    sf.pos=1504513;
+    sf.pos=1504512;
     --(t->Vcy);
    }
     break;
   }
  case DOWN:
   {
-   sf.pos=1504514;
+   sf.pos=1504513;
    if ((t->Vcy != (t->Vn_erows - 1)))
    {
-    sf.pos=1504515;
+    sf.pos=1504514;
     ++(t->Vcy);
    }
     break;
@@ -8673,20 +8693,22 @@ YQfU *Yek3(YQfU *t) {
  sf.pos=1477401;
  t->Vrowoff = 0;
  sf.pos=1477402;
- t->Verows = ZnewList((Tt*)&Ys45__T, 0);
+ t->Vcoloff = 0;
  sf.pos=1477403;
- t->Vmode = 'N';
+ t->Verows = ZnewList((Tt*)&Ys45__T, 0);
  sf.pos=1477404;
- t->Vrows = 0;
+ t->Vmode = 'N';
  sf.pos=1477405;
- t->Vcols = 0;
+ t->Vrows = 0;
  sf.pos=1477406;
- t->Vn_erows = 0;
+ t->Vcols = 0;
  sf.pos=1477407;
- t->Vorig_termios = malloc(sizeof(struct termios));
+ t->Vn_erows = 0;
  sf.pos=1477408;
- t->Vcx = 0;
+ t->Vorig_termios = malloc(sizeof(struct termios));
  sf.pos=1477409;
+ t->Vcx = 0;
+ sf.pos=1477410;
  t->Vcy = 0;
  topFrame = sf.prev;
  return t;
@@ -8893,21 +8915,42 @@ Tc *YZeI() {
   }
   else
   {
+   Ti Vn;
+   Ti Vsz;
+   Ti Vlen;
    sf.pos=3145815;
-   Vab =  ZcS(Vab, ZstringSlice(((Ys45 *)ZListGetPtr(Vec->Verows, (Vy + Vec->Vrowoff)))->Vtxt, 0, Vec->Vcols, 0));
+   Vn = (Vy + Vec->Vrowoff);
+   sf.pos=3145816;
+   Vsz = (ZstringSize(((Ys45 *)ZListGetPtr(Vec->Verows, Vn))->Vtxt) - 1);
+   sf.pos=3145817;
+   Vlen = (Vsz - Vec->Vcoloff);
+   sf.pos=3145818;
+   if ((Vlen < 0))
+   {
+    sf.pos=3145819;
+    Vlen = 0;
+   }
+   sf.pos=3145820;
+   if ((Vlen >= Vec->Vcols))
+   {
+    sf.pos=3145821;
+    Vlen = (Vec->Vcols - 1);
+   }
+   sf.pos=3145822;
+   Vab =  ZcS(Vab, ZstringSlice(((Ys45 *)ZListGetPtr(Vec->Verows, Vn))->Vtxt, Vec->Vcoloff, (Vec->Vcoloff + Vlen), 0));
   }
-  sf.pos=3145816;
+  sf.pos=3145823;
   Vab =  ZcS(Vab, ((Tc*)&Y6Sh));
-  sf.pos=3145817;
+  sf.pos=3145824;
   if ((Vy < (Vec->Vrows - 1)))
   {
-   sf.pos=3145818;
+   sf.pos=3145825;
    Vab =  ZcS(Vab, ((Tc*)&Yau));
   }
-  sf.pos=3145819;
+  sf.pos=3145826;
   }
  }
- sf.pos=3145820;
+ sf.pos=3145827;
  r = Vab;
  topFrame = sf.prev;
  return r;
@@ -8930,7 +8973,7 @@ void Y9Dc() {
  sf.pos=5680004;
  Vab =  ZcS(Vab, YZeI());
  sf.pos=5680005;
- Vab =  ZcS(Vab, YcnF((Vec->Vcx + 1), (((Vec->Vcy - Vec->Vrowoff)) + 1)));
+ Vab =  ZcS(Vab, YcnF((((Vec->Vcx - Vec->Vcoloff)) + 1), (((Vec->Vcy - Vec->Vrowoff)) + 1)));
  sf.pos=5680006;
  Vab =  ZcS(Vab, Ygor(((Tc*)&YPa), (t0 = ZnewList((Tt*)&string__T, 1), ZLap((Tl*)t0, (Tz)(void*)((Tc*)&YamK)))));
  sf.pos=5680007;

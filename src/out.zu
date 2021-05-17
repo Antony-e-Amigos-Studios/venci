@@ -103,6 +103,7 @@ CLASS EditorConfig
   list<Erow> $erows
   int $n_erows
   int $rowoff
+  int $coloff
   C(struct termios*) $orig_termios
  
   PROC $scroll()
@@ -112,6 +113,14 @@ CLASS EditorConfig
 
     IF $cy >= $rowoff + $rows
       $rowoff = $cy - $rows + 1
+    }
+
+    IF $cx < $coloff
+      $coloff = $cx
+    }
+
+    IF $cx >= $coloff + $cols
+      $coloff = $cx - $cols + 1
     }
   }
 
@@ -155,9 +164,7 @@ CLASS EditorConfig
           $cx--
         }
       CASE C(RIGHT)
-        IF $cx != $cols - 1
-          $cx++
-        }
+        $cx++
       CASE C(UP)
         IF $cy != 0
           $cy--
@@ -187,6 +194,7 @@ CLASS EditorConfig
 
   NEW()
     $rowoff = 0
+    $coloff = 0
     $erows = []
     $mode = C('N')
     $rows = 0
@@ -298,7 +306,16 @@ FUNC drawRows() string
         ab ..= "~"
       }
     ELSE
-      ab ..= ec.erows[y + ec.rowoff].txt.slice(0, ec.cols)
+      int n = y + ec.rowoff
+      int sz = ec.erows[n].txt.Size() - 1
+      int len = sz - ec.coloff
+      IF len < 0
+        len = 0
+      }
+      IF len >= ec.cols
+        len = ec.cols - 1
+      }
+      ab ..= ec.erows[n].txt.slice(ec.coloff, ec.coloff + len)
     }
 
     ab ..= "\x1b[K"
@@ -319,7 +336,7 @@ PROC refreshScreen()
   
   ab ..= drawRows()
   
-  ab ..= gotoxy_s(ec.cx + 1, (ec.cy - ec.rowoff) + 1)
+  ab ..= gotoxy_s((ec.cx - ec.coloff) + 1, (ec.cy - ec.rowoff) + 1)
   ab ..= tcalls("h", ["?25"])
 
 >>> uses(getCstring)
