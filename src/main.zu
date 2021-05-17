@@ -92,16 +92,16 @@ FUNC getCursorPosition(int &rows, int &cols) status
 
 FUNC cx2rx(Erow r, nat cx, int ts) int
   int rx = 0
-  int c = 0
+  nat c = 0
   FOR j IN r.txt
+    IF c >= cx
+      BREAK
+    }
     IF j == '\t'
       rx += (ts - 1) - (rx % ts)
     }
     rx++
     c++
-    IF c >= cx
-      BREAK
-    }
   }
   RETURN rx
 }
@@ -110,12 +110,8 @@ CLASS Erow
   string $txt
   string $render
 
-  NEW(string text)
-    $txt = text
-    $render = ""
-  }
-
   PROC $updateRow(int ts)
+    $render = ""
     FOR i IN $txt
       IF i == '\t'
         FOR j IN 0 TO ts - 1
@@ -125,6 +121,30 @@ CLASS Erow
         $render ..= i.asString()
       }
     }
+  }
+  
+  PROC $insertChar(nat pos, int ch)
+    int at = pos
+    IF $txt == NIL
+      $txt = ""
+    }
+    IF pos > $txt.Size()
+      at = $txt.Size()
+    }
+
+    string tmp = ""
+    IF at != 0
+      tmp = $txt.slice(0, at - 1)
+    }
+    tmp ..= ch.asString()
+    tmp ..= $txt.slice(at + 1)
+
+    $txt = tmp
+  }
+  
+  NEW(string text)
+    $txt = text
+    $render = ""
   }
 }
 
@@ -174,6 +194,15 @@ CLASS EditorConfig
     $erows.add(r)
     $n_erows++
   }
+  
+  PROC $insertChar(int c)
+    IF $cy == $n_erows
+      THIS.appendRow("")
+    }
+    $erows[$cy].insertChar($cx, c)
+    $erows[$cy].updateRow($ts)
+    $cx++
+  }
 
   PROC $open(string fname)
     IO.File f = IO.fileReader(fname)
@@ -190,6 +219,7 @@ CLASS EditorConfig
 
   PROC $moveCursor(int k)
     int key
+
     IF $mode == 'N'
       dict<int, int> mapper = ['h': C(LEFT),
                                'l': C(RIGHT),
@@ -208,11 +238,13 @@ CLASS EditorConfig
 
     SWITCH key
       CASE C(LEFT)
-        IF $cx != 0
+        IF $cx > 0
           $cx--
         ELSEIF $cy > 0
           $cy--
-          $cx = $erows[$cy].txt.Size()
+          IF $cy < $n_erows
+            $cx = $erows[$cy].txt.Size()
+          }
         }
       CASE C(RIGHT)
         IF r != NIL && $cx < r.txt.Size()
@@ -223,7 +255,7 @@ CLASS EditorConfig
           $cy--
         }
       CASE C(DOWN)
-        IF $cy != $n_erows - 1
+        IF $cy < $n_erows
           $cy++
         }
     }
@@ -322,22 +354,30 @@ FUNC gotoxy_s(int x, int y) string
 PROC processKeypress()
   int c @cref
   c = readKey()
-  array<nat32> movement = "hjlk".toArray()
+  array<nat32> movement = "hjlk+".toArray()
   IF C(*c == CTRL_KEY('q'))
     clrscr()
     EXIT 0
   ELSE
     SWITCH c
-      CASE C(CTRL_KEY('k')); ec.moveCursor(C(UP).<int>)
-      CASE C(CTRL_KEY('j')); ec.moveCursor(C(DOWN).<int>)
-      CASE C(CTRL_KEY('l')); ec.moveCursor(C(RIGHT).<int>)
-      CASE C(CTRL_KEY('h')); ec.moveCursor(C(LEFT).<int>)
+      CASE '\r'
+        # TODO
+        BREAK
+
+      CASE C('\x1b')
+        ec.mode = ec.mode == 'N' ? 'I' : 'N' 
 
       CASE C(HOME); ec.cx = 0
       CASE C(END)
         IF (ec.cy < ec.n_erows)
           ec.cx = ec.erows[ec.cy].txt.Size()
         }
+
+      CASE C(BACKSPACE); PROCEED
+      CASE C(CTRL_KEY('h')); PROCEED
+      CASE C(DEL)
+        # TODO
+        BREAK
 
       CASE C(PAGE_UP); PROCEED
       CASE C(PAGE_DOWN)
@@ -357,9 +397,12 @@ PROC processKeypress()
       CASE C(DOWN); PROCEED
       CASE C(RIGHT)
         ec.moveCursor(c)
+
       DEFAULT
-        IF movement.has(c)
+        IF ec.mode == 'N'
           ec.moveCursor(c)
+        ELSE
+          ec.insertChar(c)
         }
     }
   }
@@ -408,7 +451,7 @@ FUNC drawStatusBar() string
   
   string barText = " \(ec.filename == NIL ? "[No Name]" : ec.filename.slice(0, 20)) - \(ec.n_erows) lines".slice(0, ec.cols - 1)
   
-  string statText = "\(ec.cy + 1)|\(ec.n_erows)"
+  string statText = "<\(ec.mode.asString())>\(ec.cy + 1)|\(ec.n_erows)"
   int statlen = statText.Size()
 
   string welcome = " welcome to venci (^_^)/ |"

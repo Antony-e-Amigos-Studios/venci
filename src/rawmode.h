@@ -3,6 +3,7 @@
 void disableRawMode();
 
 enum ekey {
+  BACKSPACE = 127,
   LEFT = 1000,
   RIGHT,
   UP,
