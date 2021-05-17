@@ -9,6 +9,8 @@ IMPORT "Lua.zu"
 
 # NOTE: ESC -> 0x1b
 
+TYPE int Time_t
+
 string venci_v = "0.0.1"
 
 PROC die(string s)
@@ -88,25 +90,65 @@ FUNC getCursorPosition(int &rows, int &cols) status
   RETURN OK
 }
 
+FUNC cx2rx(Erow r, nat cx, int ts) int
+  int rx = 0
+  int c = 0
+  FOR j IN r.txt
+    IF j == '\t'
+      rx += (ts - 1) - (rx % ts)
+    }
+    rx++
+    c++
+    IF c >= cx
+      BREAK
+    }
+  }
+  RETURN rx
+}
+
 CLASS Erow
   string $txt
+  string $render
 
   NEW(string text)
     $txt = text
+    $render = ""
+  }
+
+  PROC $updateRow(int ts)
+    FOR i IN $txt
+      IF i == '\t'
+        FOR j IN 0 TO ts - 1
+          $render ..= ' '.asString()
+        }
+      ELSE
+        $render ..= i.asString()
+      }
+    }
   }
 }
 
 CLASS EditorConfig
   nat $cx, $cy
+  nat $rx
   int $rows, $cols
   byte $mode
   list<Erow> $erows
   int $n_erows
   int $rowoff
   int $coloff
+  int $ts
+  string $filename
+  string $statusmsg
+  Time_t $statime
   C(struct termios*) $orig_termios
- 
+
   PROC $scroll()
+    $rx = 0
+    IF $cy < $n_erows
+      $rx = cx2rx($erows[$cy], $cx, $ts)
+    }
+
     IF $cy < $rowoff
       $rowoff = $cy
     }
@@ -126,6 +168,9 @@ CLASS EditorConfig
 
   PROC $appendRow(string s)
     Erow r = NEW(s)
+
+    r.updateRow($ts)
+
     $erows.add(r)
     $n_erows++
   }
@@ -135,6 +180,7 @@ CLASS EditorConfig
     IF f == NIL
       die("couldn't open \(fname) for reading")
     }
+    $filename = fname
     list<string> lines = f.readAllLines()
     FOR line IN lines
       THIS.appendRow(line)
@@ -158,13 +204,20 @@ CLASS EditorConfig
       key = k
     }
 
+    Erow r = ($cy >= $n_erows) ? NIL : $erows[$cy]
+
     SWITCH key
       CASE C(LEFT)
         IF $cx != 0
           $cx--
+        ELSEIF $cy > 0
+          $cy--
+          $cx = $erows[$cy].txt.Size()
         }
       CASE C(RIGHT)
-        $cx++
+        IF r != NIL && $cx < r.txt.Size()
+          $cx++
+        }
       CASE C(UP)
         IF $cy != 0
           $cy--
@@ -174,6 +227,17 @@ CLASS EditorConfig
           $cy++
         }
     }
+
+    Erow r2 = ($cy >= $n_erows) ? NIL : $erows[$cy]
+    int sz = r2 != NIL ? r2.txt.Size() : 0
+    IF $cx > sz
+      $cx = sz
+    }
+  }
+
+  PROC $setStatmsg(string s)
+    $statusmsg = s
+    $statime = TIME.current()
   }
 
   FUNC $getWindowSize() status
@@ -186,7 +250,7 @@ CLASS EditorConfig
       }
       RETURN getCursorPosition(&$rows, &$cols)
     ELSE
-      $rows = C(ws.ws_row)
+      $rows = C(ws.ws_row) - 2
       $cols = C(ws.ws_col)
       RETURN OK
     }
@@ -196,10 +260,14 @@ CLASS EditorConfig
     $rowoff = 0
     $coloff = 0
     $erows = []
-    $mode = C('N')
+    $mode = C('I')
     $rows = 0
+    $ts = 2
+    $statusmsg = ""
+    $statime = 0
     $cols = 0
     $n_erows = 0
+    $rx = 0
     $orig_termios = C(malloc(sizeof(struct termios)))
 
     $cx = 0
@@ -260,12 +328,26 @@ PROC processKeypress()
     EXIT 0
   ELSE
     SWITCH c
+      CASE C(CTRL_KEY('k')); ec.moveCursor(C(UP).<int>)
+      CASE C(CTRL_KEY('j')); ec.moveCursor(C(DOWN).<int>)
+      CASE C(CTRL_KEY('l')); ec.moveCursor(C(RIGHT).<int>)
+      CASE C(CTRL_KEY('h')); ec.moveCursor(C(LEFT).<int>)
+
       CASE C(HOME); ec.cx = 0
-      CASE C(END); ec.cx = ec.cols - 1
+      CASE C(END)
+        IF (ec.cy < ec.n_erows)
+          ec.cx = ec.erows[ec.cy].txt.Size()
+        }
 
       CASE C(PAGE_UP); PROCEED
       CASE C(PAGE_DOWN)
-        FOR n IN ec.rows TO 0 STEP -1
+        IF C(*c == PAGE_UP)
+          ec.cy = ec.rowoff
+        ELSEIF C(*c == PAGE_DOWN)
+          ec.cy = ec.rowoff + ec.rows - 1
+          IF ec.cy > ec.rows; ec.cy = ec.rows; }
+        }
+        FOR n IN ec.n_erows TO 0 STEP -1
           int res = C(*c == PAGE_UP ? UP : DOWN)
           ec.moveCursor(res)
         }
@@ -286,7 +368,8 @@ PROC processKeypress()
 FUNC drawRows() string
   string ab = ""
   FOR y IN 0 TO ec.rows - 1
-    IF y >= ec.n_erows
+    int n = y + ec.rowoff
+    IF n >= ec.n_erows
       IF ec.n_erows == 0 && y == ec.rows / 3
         string w = "Venci test, version " .. venci_v
         int padding = (ec.cols - w.Size()) / 2
@@ -303,8 +386,7 @@ FUNC drawRows() string
         ab ..= "~"
       }
     ELSE
-      int n = y + ec.rowoff
-      int sz = ec.erows[n].txt.Size() - 1
+      int sz = ec.erows[n].render.Size() - 1
       int len = sz - ec.coloff
       IF len < 0
         len = 0
@@ -312,13 +394,50 @@ FUNC drawRows() string
       IF len >= ec.cols
         len = ec.cols - 1
       }
-      ab ..= ec.erows[n].txt.slice(ec.coloff, ec.coloff + len)
+      ab ..= ec.erows[n].render.slice(ec.coloff, ec.coloff + len)
     }
 
     ab ..= "\x1b[K"
-    IF y < ec.rows - 1
-      ab ..= "\r\n"
+    ab ..= "\r\n"
+  }
+  RETURN ab
+}
+
+FUNC drawStatusBar() string
+  string ab = ""
+  
+  string barText = " \(ec.filename == NIL ? "[No Name]" : ec.filename.slice(0, 20)) - \(ec.n_erows) lines".slice(0, ec.cols - 1)
+  
+  string statText = "\(ec.cy + 1)|\(ec.n_erows)"
+  int statlen = statText.Size()
+
+  string welcome = " welcome to venci (^_^)/ |"
+  IF barText.Size() + welcome.Size() < ec.cols - statlen
+    barText = welcome .. barText
+  }
+
+  ab ..= tcalls("m", ["7"])
+
+  ab ..= barText
+
+  FOR n IN barText.Size() TO ec.cols - 1
+    IF ec.cols - n == statlen
+      ab ..= statText
+      BREAK
     }
+    ab ..= " "
+  }
+  ab ..= tcalls("m")
+  ab ..= "\r\n"
+  RETURN ab
+}
+
+FUNC drawMsgBar() string
+  string ab = ""
+  ab ..= tcalls("K")
+  int msglen = ec.statusmsg.Size()
+  IF msglen > 0 && TIME.current() - ec.statime < 5000
+    ab ..= ec.statusmsg.slice(0, ec.cols)
   }
   RETURN ab
 }
@@ -332,8 +451,10 @@ PROC refreshScreen()
   ab ..= gotoxy_s(1, 1)
   
   ab ..= drawRows()
+  ab ..= drawStatusBar()
+  ab ..= drawMsgBar()
   
-  ab ..= gotoxy_s((ec.cx - ec.coloff) + 1, (ec.cy - ec.rowoff) + 1)
+  ab ..= gotoxy_s((ec.rx - ec.coloff) + 1, (ec.cy - ec.rowoff) + 1)
   ab ..= tcalls("h", ["?25"])
 
 >>> uses(getCstring)
@@ -414,6 +535,8 @@ FUNC Main() int
   IF ARG.rawSize() > 0
     ec.open(ARG.getRawList()[0])
   }
+
+  ec.setStatmsg("info: press Ctrl-Q to quit venci")
 
   WHILE TRUE
     refreshScreen()
