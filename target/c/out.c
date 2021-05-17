@@ -2127,7 +2127,7 @@ Tcpos ZcTbl84899[]={
 };
 Tc Y9QD[]="Main()";
 Tcpos ZcTbl5270[]={
-{345,3},
+{343,3},
 {1,3},
 {2,5},
 {5,3},
@@ -2296,11 +2296,20 @@ Tcpos ZcTbl79390[]={
 {32,9},
 {33,19},
 {35,9},
-{36,4},
-{43,18},
-{46,4},
-{57,9},
-{60,10},
+{36,24},
+{37,11},
+{38,34},
+{39,34},
+{41,19},
+{45,20},
+{46,7},
+{47,27},
+{48,27},
+{49,27},
+{50,27},
+{52,15},
+{55,9},
+{58,10},
 };
 Tc YClS[]="refreshScreen()";
 Tcpos ZcTbl56800[]={
@@ -8493,6 +8502,7 @@ int*res = &Vres;
   sf.pos=7939013;
   if (seq[0] == '[')
   {
+   Tc Vseq1;
    sf.pos=7939014;
    if (seq[1] >= '0' && seq[1] <= '9')
    {
@@ -8507,40 +8517,91 @@ int*res = &Vres;
     sf.pos=7939017;
     if (seq[2] == '~')
     {
+     Tc Vseq1;
      sf.pos=7939018;
-          switch (seq[1]) {
-            case '5': *res = PAGE_UP; break;
-            case '6': *res = PAGE_DOWN; break;
-            default: *res = '\x1b';
-          }
+     Vseq1 = seq[1];
      sf.pos=7939019;
-     r = Vres;
+     switch (Vseq1)
+     {
+     case '5':
+      {
+       sf.pos=7939020;
+       r = PAGE_UP;
+       rt = 1;
+       goto YSsI;
+      }
+     case '6':
+      {
+       sf.pos=7939021;
+       r = PAGE_DOWN;
+       rt = 1;
+       goto YSsI;
+      }
+YSsI:
+      if (rt) goto YhvD;
+     }
+     sf.pos=7939022;
+     r = '\x1b';
+YhvD:
+     ;
      rt = 1;
      goto Yatd;
     }
 Yatd:
     if (rt) goto Yq1Z;
    }
-   sf.pos=7939020;
-      switch (seq[1]) {
-        case 'A': *res = UP; break;
-        case 'B': *res = DOWN; break;
-        case 'C': *res = RIGHT; break;
-        case 'D': *res = LEFT; break;
-        default:  *res = '\x1b';
-      }
+   sf.pos=7939023;
+   Vseq1 = seq[1];
+   sf.pos=7939024;
+   switch (Vseq1)
+   {
+   case 65:
+    {
+     sf.pos=7939025;
+     r = UP;
+     rt = 1;
+     goto Yx4N;
+    }
+   case 66:
+    {
+     sf.pos=7939026;
+     r = DOWN;
+     rt = 1;
+     goto Yx4N;
+    }
+   case 67:
+    {
+     sf.pos=7939027;
+     r = RIGHT;
+     rt = 1;
+     goto Yx4N;
+    }
+   case 68:
+    {
+     sf.pos=7939028;
+     r = LEFT;
+     rt = 1;
+     goto Yx4N;
+    }
+Yx4N:
+    if (rt) goto Yq1Z;
+   }
+   sf.pos=7939029;
+   r = '\x1b';
 Yq1Z:
-   if (rt) goto YNjP;
+   ;
+   rt = 1;
+   goto YNjP;
   }
 YNjP:
   if (rt) goto Y0Pr;
  }
  else
  {
-  sf.pos=7939021;
+  sf.pos=7939030;
   Vres = Vc;
  }
- sf.pos=7939022;
+ sf.pos=7939031;
  r = Vres;
 Y0Pr:
  topFrame = sf.prev;

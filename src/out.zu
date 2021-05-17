@@ -314,25 +314,23 @@ int*res = &%res%;
           RETURN C('\x1b')
         }
         IF C(seq[2] == '~')
->>>
-          switch (seq[1]) {
-            case '5': *res = PAGE_UP; break;
-            case '6': *res = PAGE_DOWN; break;
-            default: *res = '\x1b';
+          byte seq1 = C(seq[1])
+          SWITCH seq1.<int>
+            CASE C('5'); RETURN C(PAGE_UP)
+            CASE C('6'); RETURN C(PAGE_DOWN)
           }
-<<<
-          RETURN res
+          RETURN C('\x1b')
         }
       }
->>>
-      switch (seq[1]) {
-        case 'A': *res = UP; break;
-        case 'B': *res = DOWN; break;
-        case 'C': *res = RIGHT; break;
-        case 'D': *res = LEFT; break;
-        default:  *res = '\x1b';
+
+      byte seq1 = C(seq[1])
+      SWITCH seq1.<int>
+        CASE 'A'; RETURN C(UP)
+        CASE 'B'; RETURN C(DOWN)
+        CASE 'C'; RETURN C(RIGHT)
+        CASE 'D'; RETURN C(LEFT)
       }
-<<<
+      RETURN C('\x1b')
     }
   ELSE
     res = c
