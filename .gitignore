@@ -1,4 +1,5 @@
 ZUDIR/
 target/bin/
 buildlog
+test
 

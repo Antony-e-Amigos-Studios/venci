@@ -108,6 +108,7 @@ FUNC cx2rx(Erow r, nat cx, int ts) int
 
 CLASS Erow
   string $txt
+  string $orig
   string $render
 
   PROC $updateRow(int ts)
@@ -141,9 +142,26 @@ CLASS Erow
 
     $txt = tmp
   }
+
+  PROC $shiftl(nat pos)
+    $txt = $txt.slice(0, pos) .. " " .. $txt.slice(pos + 1)
+  }
+  
+  PROC $preshiftl(nat pos)
+    string tmp = ""
+    IF pos != 0
+      tmp = $txt.slice(0, pos - 1)
+    }
+    $txt = tmp .. " " .. $txt.slice(pos)
+  }
+
+  PROC $back()
+    $txt = $orig
+  }
   
   NEW(string text)
     $txt = text
+    $orig = text
     $render = ""
   }
 }
@@ -162,6 +180,24 @@ CLASS EditorConfig
   string $statusmsg
   Time_t $statime
   C(struct termios*) $orig_termios
+
+  FUNC $rowsToStr() string
+    string res = ""
+    FOR j IN $erows
+      res ..= j.txt .. "\n"
+    }
+    RETURN res
+  }
+
+  PROC $save()
+    IF $filename != NIL
+      string w = THIS.rowsToStr()
+
+      IO.File f = IO.fileWriter($filename, TRUE)
+      f.write(w)
+      f.close()
+    }
+  }
 
   PROC $scroll()
     $rx = 0
@@ -204,6 +240,11 @@ CLASS EditorConfig
     $cx++
   }
 
+  PROC $shiftRowLeft()
+    $erows[$cy].shiftl($cx)
+    $erows[$cy].updateRow($ts)
+  }
+  
   PROC $open(string fname)
     IO.File f = IO.fileReader(fname)
     IF f == NIL
@@ -257,6 +298,20 @@ CLASS EditorConfig
       CASE C(DOWN)
         IF $cy < $n_erows
           $cy++
+        }
+      CASE '>'
+        IF r != NIL
+          THIS.shiftRowLeft()
+        }
+      CASE '<'
+        IF r != NIL
+          r.preshiftl($cx)
+          r.updateRow($ts)
+        }
+      CASE 'u'
+        IF r != NIL
+          r.back()
+          r.updateRow($ts)
         }
     }
 
@@ -379,6 +434,9 @@ PROC processKeypress()
         # TODO
         BREAK
 
+      CASE C(CTRL_KEY('s'))
+        ec.save()
+
       CASE C(PAGE_UP); PROCEED
       CASE C(PAGE_DOWN)
         IF C(*c == PAGE_UP)
@@ -397,6 +455,12 @@ PROC processKeypress()
       CASE C(DOWN); PROCEED
       CASE C(RIGHT)
         ec.moveCursor(c)
+
+      CASE C(CTRL_KEY('l'))
+        # this is the void, stuff that isnt 
+        # supposed to be handled should
+        # PROCEED to here
+        BREAK
 
       DEFAULT
         IF ec.mode == 'N'
