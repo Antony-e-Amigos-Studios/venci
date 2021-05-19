@@ -17,6 +17,10 @@ PROC die(string s)
   LOG.fatal(s)
 }
 
+FUNC iscntrl(int ch) bool
+  RETURN ch > 127
+}
+
 FUNC tcalls(string f, list<string> args = []) string
   string res = "\x1b["
   IF args.Size() >= 1
@@ -106,22 +110,84 @@ FUNC cx2rx(Erow r, nat cx, int ts) int
   RETURN rx
 }
 
+FUNC issep(int ch) bool
+  int c 
+>>>
+int*c = &%c%;
+<<<
+  c = ch
+  
+  RETURN C(isspace(*c) || strchr(",.()+-/*=~%<>[];\"'", *c) != NULL)
+}
+
+CLASS EditorSyn
+  string $ft
+  list<string> $fpatterns
+  string $icommentStyle
+  list<string> $keywords
+  int $flags
+
+  NEW(string ft, list<string> fp, int flags, string ics, list<string> kw)
+    $ft = ft
+    $fpatterns = fp
+    $flags = flags
+    $icommentStyle = ics
+    $keywords = kw
+  }
+}
+
+
+# add filetypes here
+list<EditorSyn> filetypes = [
+    NEW("zimbu", [".zu"],
+        C(HI_NUM | HI_STRING).<int>, "#",
+        [
+          "SWITCH", "DO", "FUNC", "WHILE", "IF", "UNTIL", "ELSE", "PROC",
+          "CLASS", "RETURN", "FOR", "IN", "TYPE", "ELSEIF", "IMPORT", "BREAK",
+          "CONTINUE", "CASE", "BITS", "}", "PROCEED",
+
+          "int|", "string|", "float|", "nat8|", "nat16|", "nat|", "list|",
+          "bool|", "array|", "dyn|", "nat32|", "@public~", "@cref~",
+          "@private~"
+        ]
+    ),
+    NEW("zimbu", [".zu"],
+        C(HI_NUM | HI_STRING).<int>, "//",
+        [
+          "switch", "do", "while", "if", "else", "return", "break",
+          "continue", "for",
+
+          "int|", "string|", "float|", "nat8|", "nat16|", "nat|", "list|",
+          "bool|", "array|", "dyn|", "nat32|"
+        ]
+    )
+  ]
+
+
+FUNC next(string s, int from, int len) string
+  RETURN s.slice(from, from + len)
+}
+
 CLASS Erow
   string $txt
   string $orig
   string $render
+  list<nat8> $hl
+  int $ts
+  EditorSyn $syn
 
-  PROC $updateRow(int ts)
+  PROC $updateRow()
     $render = ""
     FOR i IN $txt
       IF i == '\t'
-        FOR j IN 0 TO ts - 1
+        FOR j IN 0 TO $ts - 1
           $render ..= ' '.asString()
         }
       ELSE
         $render ..= i.asString()
       }
     }
+    THIS.updateSyntax()
   }
   
   PROC $insertChar(nat pos, int ch)
@@ -141,10 +207,12 @@ CLASS Erow
     tmp ..= $txt.slice(at + 1)
 
     $txt = tmp
+    THIS.updateRow()
   }
 
   PROC $shiftl(nat pos)
     $txt = $txt.slice(0, pos) .. " " .. $txt.slice(pos + 1)
+    THIS.updateRow()
   }
   
   PROC $preshiftl(nat pos)
@@ -153,16 +221,164 @@ CLASS Erow
       tmp = $txt.slice(0, pos - 1)
     }
     $txt = tmp .. " " .. $txt.slice(pos)
+    THIS.updateRow()
   }
 
   PROC $back()
     $txt = $orig
+    THIS.updateRow()
+  }
+
+  PROC $delChar(int pos)
+    IF pos > 0 || pos < $txt.Size()
+      string tmp = ""
+      IF pos > 0
+        tmp = $txt.slice(0, pos - 1)
+      }
+      tmp ..= $txt.slice(pos + 1)
+      $txt = tmp
+    }
+    THIS.updateRow()
+  }
+
+  FUNC $rx2cx(int rx) int
+    int crx = 0
+    int cx = 0
+    FOR USE cx IN 0 TO $txt.Size()
+      IF $txt[cx] == '\t'
+        crx += ($ts - 1) - (crx % $ts)
+      }
+      crx++
+
+      IF crx > rx
+        RETURN cx
+      }
+    }
+    RETURN cx
   }
   
-  NEW(string text)
+  PROC $appendStr(string s)
+    $txt ..= s
+    THIS.updateRow()
+  }
+
+  PROC $updateSyntax()
+    IF $syn == NIL
+      $hl = []
+      FOR j IN 0 TO $render.Size() - 1
+        $hl.add(C(HL_NORMAL).<nat8>)
+      }
+      RETURN
+    }
+
+    int j = 0
+
+    string ics = $syn.icommentStyle
+
+    $hl = []
+    
+    bool psep = TRUE
+    int instr = 0
+    bool incmm = FALSE
+
+    list<string> kw = $syn.keywords
+
+    WHILE j < $render.Size()
+      int c = $render[j]
+
+      nat8 phl 
+>>>
+uint8_t*phl = &%phl%;
+<<<
+      phl = (j > 0) ? $hl[j - 1] : C(HL_NORMAL).<nat8>
+
+      $hl.add(C(HL_NORMAL).<nat8>)
+      
+      IF ics.Size() > 0 && instr == 0
+        IF next($render, j, ics.Size() - 1) == ics
+          $hl[j] = C(HL_COMMENT).<nat8>
+          FOR i IN j + 1 TO $render.Size() - 1
+            $hl.add(C(HL_COMMENT).<nat8>)
+          }
+          BREAK
+        }
+      }
+
+      IF $syn.flags & C(HI_STRING) != 0
+        IF instr != 0
+          $hl[j] = C(HL_STRING).<nat8>
+          IF c == '\\' && j + 1 < $render.Size() - 1
+            $hl.add(C(HL_STRING).<nat8>)
+            j += 2
+            CONTINUE
+          }
+          IF c == instr
+            instr = 0
+          }
+          j++
+          psep = TRUE
+          CONTINUE
+        ELSE
+          IF (c == '"' || c == '\'')
+            instr = c
+            $hl[j] = C(HL_STRING).<nat8>
+            j++
+            CONTINUE
+          }
+        }
+      }
+
+      IF $syn.flags & C(HI_NUM) != 0
+        IF c.isDigit() && (psep || C(*phl == HL_NUMBER))
+          || (c == '.' && C(*phl == HL_NUMBER))
+          $hl[j] = C(HL_NUMBER).<nat8>
+          j++
+          psep = FALSE
+          CONTINUE
+        }
+      }
+
+      IF psep
+        bool broken = FALSE
+        FOR keyw IN kw
+          # bool|
+          string k = keyw
+          int len = k.Size() - 1
+          bool k2 = k.endsWith("|")
+          IF k2
+            len--
+            k = k.slice(0, len)
+          }
+          IF next($render, j, len) == k
+              && (j + len >= $render.Size() - 1 || issep($render[j + len + 1]))
+            nat8 hi = k2 ? C(HL_TYPE).<nat8> : C(HL_KEYWORD).<nat8>
+            $hl[j] = hi
+            FOR o IN j + 1 TO j + len
+              $hl.add(hi)
+            }
+            j += len + 1
+            broken = TRUE
+            BREAK
+          }
+        }
+        IF broken
+          psep = FALSE
+          CONTINUE
+        }
+      }
+
+      psep = issep(c)
+      j++
+    }
+  }
+
+  NEW(string text, int ts, EditorSyn syn)
     $txt = text
+    $ts = ts
     $orig = text
+    $hl = []
     $render = ""
+    $syn = syn
   }
 }
 
@@ -174,17 +390,73 @@ CLASS EditorConfig
   list<Erow> $erows
   int $n_erows
   int $rowoff
+  string $copy
   int $coloff
   int $ts
   bool $expand
+  int $fmodified
   string $filename
   string $statusmsg
   Time_t $statime
+  EditorSyn $csyn
   C(struct termios*) $orig_termios
 
-  PROC $setStatmsg(string s)
-    $statusmsg = s
+  PROC $setStatmsg(string s, string b = "")
+    $statusmsg = s .. b
     $statime = TIME.current()
+  }
+
+  PROC $updateSynAllRows()
+    FOR r IN $erows
+      r.syn = $csyn
+      r.updateSyntax()
+    }
+  }
+
+  PROC $selectSyn()
+    $csyn = NIL
+    IF $filename == NIL
+      RETURN
+    }
+   
+    FOR entry IN filetypes
+      FOR fp IN entry.fpatterns
+        IF $filename.endsWith(fp)
+          $csyn = entry
+          THIS.updateSynAllRows()
+          RETURN
+        }
+      }
+    }
+  }
+
+  FUNC $getSynColor(int hl) int
+    SWITCH hl
+      CASE C(HL_NUMBER); RETURN 34
+      CASE C(HL_KEYWORD); RETURN 33
+      CASE C(HL_TYPE); RETURN 32
+      CASE C(HL_MATCH); RETURN 31
+      CASE C(HL_STRING); RETURN 35
+      CASE C(HL_MCOMMENT); PROCEED
+      CASE C(HL_COMMENT); RETURN 36
+      DEFAULT; RETURN 37
+    }
+  }
+
+  PROC $find()
+    int scx = $cx
+    int scy = $cy
+    int scoloff = $coloff
+    int srowoff = $rowoff
+
+    string query = prompt("(=_=) | -ESC to cancel- Find text: ", findCb)
+
+    IF query == NIL
+      $cx = scx
+      $cy = scy
+      $coloff = scoloff
+      $rowoff = srowoff
+    }
   }
   
   FUNC $rowsToStr() string
@@ -212,12 +484,19 @@ CLASS EditorConfig
           FOR j IN 0 TO $n_erows - 1
             $erows[j].orig = $erows[j].txt
           }
+          $fmodified = 0
           THIS.setStatmsg("(\\^w^/) | \(w.Size()) bytes written")
         }
       }
     ELSE
-      THIS.setStatmsg("(@_@) | no filename!")
+      $filename = prompt("(o_o)? | Save as: ")
+      IF $filename == NIL
+        THIS.setStatmsg("(@_@) | so, no saving? Ok that's fine i guess")
+      ELSE
+        THIS.save()
+      }
     }
+    THIS.selectSyn()
   }
 
   PROC $scroll()
@@ -243,29 +522,71 @@ CLASS EditorConfig
     }
   }
 
-  PROC $appendRow(string s)
-    Erow r = NEW(s)
+  PROC $insertRow(string s, int at = $n_erows)
+    IF (at >= 0 && at <= $n_erows)
+      Erow r = NEW(s, $ts, $csyn)
 
-    r.updateRow($ts)
+      r.updateRow()
 
-    $erows.add(r)
-    $n_erows++
+      IF at == $n_erows
+        $erows.add(r)
+      ELSE
+        $erows.insert(r, at + 1)
+      }
+      $n_erows++
+      $fmodified++
+    }
+  }
+
+  PROC $insertNL()
+    IF $cx == 0 && $cy == 0 && $n_erows == 0
+      THIS.insertRow("", $cy.<int>)
+    ELSE
+      Erow r = $erows[$cy]
+      THIS.insertRow(r.txt.slice($cx), $cy.<int>)
+      IF $cx > 0
+        r.txt = r.txt.slice(0, $cx - 1)
+      ELSE
+        r.txt = ""
+      }
+      r.updateRow()
+    }
+    $cy++
+    $cx = 0
   }
   
   PROC $insertChar(int c)
     IF $cy == $n_erows
-      THIS.appendRow("")
+      THIS.insertRow("")
+      $fmodified--
     }
     $erows[$cy].insertChar($cx, c)
-    $erows[$cy].updateRow($ts)
     $cx++
+    $fmodified++
   }
 
   PROC $shiftRowLeft()
     $erows[$cy].shiftl($cx)
-    $erows[$cy].updateRow($ts)
   }
   
+  PROC $delChar()
+    IF $cy != $n_erows
+      Erow r = $erows[$cy]
+      IF $cx > 0
+        r.delChar($cx - 1)
+        $cx--
+      ELSEIF $cy > 0
+        $cx = $erows[$cy - 1].txt.Size()
+        $erows[$cy - 1].appendStr(r.txt)
+
+        $erows.clear($cy)
+        $n_erows--
+
+        $cy--
+      }
+    }
+  }
+
   PROC $open(string fname)
     TRY
       IO.File f = IO.fileReader(fname)
@@ -278,11 +599,18 @@ CLASS EditorConfig
         $filename = fname
         list<string> lines = f.readAllLines()
         FOR line IN lines
-          THIS.appendRow(line)
+          THIS.insertRow(line)
         }
+        $fmodified = 0
+        THIS.selectSyn()
         f.close()
       }
     }
+  }
+
+  PROC $close()
+    THIS.reset()
+    THIS.setStatmsg("(v.v) | file closed")
   }
 
   PROC $moveCursor(int k)
@@ -323,28 +651,104 @@ CLASS EditorConfig
           $cy--
         }
       CASE C(DOWN)
-        IF $cy < $n_erows
+        IF $n_erows != 0 && $cy < $n_erows - 1
           $cy++
         }
       CASE '>'
         IF r != NIL
           THIS.shiftRowLeft()
+          $fmodified++
         }
       CASE '<'
         IF r != NIL
           r.preshiftl($cx)
-          r.updateRow($ts)
+          $fmodified++
         }
       CASE 'u'
         IF r != NIL
-          r.back()
-          r.updateRow($ts)
+          IF r.txt != r.orig
+            FOR c IN r.txt
+              IF r.orig.find(c) == -1
+                $fmodified--
+              }
+            }
+            r.back()
+            THIS.setStatmsg("(-_O) | undid actions on that line")
+          ELSE
+            THIS.setStatmsg("(-_-) | nothing to undo on current line.")
+          }
         }
       CASE 'D'
         IF r != NIL
           $erows.clear($cy)
           $n_erows--
+          $fmodified++
         }
+      CASE '['
+        IF r != NIL
+          $copy = r.txt
+          THIS.setStatmsg("(^.^) | line copied")
+        }
+      CASE ']'
+        IF $copy != NIL
+          FOR line IN $copy.split("\n")
+            THIS.insertRow(line, $cy.<int>)
+            $cy++
+          }
+        }
+      CASE '{'
+        IF $copy != NIL
+          $copy ..= "\n" .. r.txt
+          IF $copy.Size() > 250
+            THIS.setStatmsg("/(OoO)\\ | sorry, copy buffer is too big.")
+            $copy = $copy.slice(0, 250)
+          ELSE
+            THIS.setStatmsg("('V') | line appended to copy buffer")
+          }
+        ELSE
+          $copy = r.txt
+          THIS.setStatmsg("(^.^) | line copied")
+        }
+      CASE 'J'
+        string times = prompt(">>.>> | -ESC to cancel- how many lines to advance: ")
+        
+        IF times == NIL
+          THIS.setStatmsg("(._.) | this is boring, i want to run")
+          BREAK
+        }
+        
+        FOR i IN 0 TO times.toInt(20)
+          THIS.moveCursor(C(DOWN).<int>)
+        }
+      CASE 'K'
+        string times = prompt("<<.<< | -ESC to cancel- how many lines to go back: ")
+        
+        IF times == NIL
+          THIS.setStatmsg("('-') | this is boring, i want to run")
+          BREAK
+        }
+        
+        FOR i IN 0 TO times.toInt(20)
+          THIS.moveCursor(C(UP).<int>)
+        }
+      CASE 'p'
+        string t = prompt("(Owo) | \(TIME.current() % 5 == 0 ? "<!--i regret adding this ascii face-->" : "-ESC to cancel-") String to insert: ")
+        IF t == NIL
+          THIS.setStatmsg("(.o.) | why tho? this command is so cool!")
+          BREAK
+        }
+        FOR i IN 0 TO t.Size() - 1
+          r.preshiftl($cx)
+        }
+        FOR c IN t
+          THIS.insertChar(c)
+        }
+      CASE 'A'
+        IF r != NIL
+          $cx = r.txt.Size()
+        }
+      CASE 'I'
+        $cx = 0
     }
 
     Erow r2 = ($cy >= $n_erows) ? NIL : $erows[$cy]
@@ -370,27 +774,113 @@ CLASS EditorConfig
     }
   }
 
-  NEW()
+  PROC $reset()
     $rowoff = 0
     $coloff = 0
     $erows = []
-    $mode = C('I')
-    $rows = 0
+    $mode = C('N')
     $ts = 2
     $statusmsg = ""
     $statime = 0
-    $cols = 0
     $n_erows = 0
+    $filename = NIL
+    $fmodified = 0
     $rx = 0
     $expand = TRUE
-    $orig_termios = C(malloc(sizeof(struct termios)))
-
+    $copy = NIL
     $cx = 0
     $cy = 0
+    $csyn = NIL
+  }
+
+  NEW()
+    THIS.reset()
+    $rows = 0
+    $cols = 0
+    $orig_termios = C(malloc(sizeof(struct termios)))
   }
 }
 
 EditorConfig ec = NEW()
+
+PROC findCb(string query, int k)
+  STATIC int last = -1
+  STATIC int dir  = 1
+
+  STATIC int shl_index = 0
+  STATIC list<nat8> shl = NIL
+
+  IF shl != NIL
+    ec.erows[shl_index].hl = shl
+    shl = NIL
+  }
+
+  int key 
+>>>
+int*key = &%key%;
+<<<
+  key = k
+
+  IF k == '\x1b'
+    ec.setStatmsg("('.') | i was trying to find something, but you just canceled the search.")
+    last = -1
+    dir = 1
+    RETURN
+  ELSEIF C(*key == RIGHT || *key == DOWN)
+    dir = 1
+  ELSEIF C(*key == LEFT || *key == UP)
+    dir = -1
+  ELSEIF C(*key == '\r')
+    IF last == -1
+      ec.setStatmsg("(^_-) | didn't find string \(query)")
+      dir = 1
+      RETURN
+    ELSE
+      ec.setStatmsg("(^O^) | Yay! i found it!")
+      last = -1
+      dir = 1
+      RETURN
+    }
+  ELSE
+    last = -1
+    dir = 1
+  }
+
+  IF last == -1
+    dir = 1
+  }
+
+  int current = last
+  
+  FOR i IN 0 TO ec.n_erows - 1
+    current += dir
+    IF current == -1
+      current = ec.n_erows - 1
+    ELSEIF current == ec.n_erows
+      current = 0
+    }
+
+    Erow r = ec.erows[current]
+    int match = r.render.find(query)
+    
+    IF match != -1
+      last = current
+      ec.cy = current
+      ec.cx = r.rx2cx(match)
+      ec.rowoff = ec.n_erows
+
+      shl_index = current
+      shl = r.hl.copy()
+
+      FOR j IN ec.cx TO ec.cx + (query.Size() - 1)
+        IF j < r.hl.Size()
+          r.hl[j] = C(HL_MATCH).<nat8>
+        }
+      }
+      BREAK
+    }
+  }
+}
 
 # rawmode.h: void disableRawMode();
 >>>
@@ -434,21 +924,72 @@ FUNC gotoxy_s(int x, int y) string
   RETURN tcalls("H", [y.ToString(), x.ToString()])
 }
 
+PROC warnUnsaved()
+  ec.setStatmsg("WAIT! (O__O!) | you have unsaved changes, press CTRL-S to save or try again to quit anyway")
+}
+
 PROC processKeypress()
+  STATIC int didquit = 1
   int c 
 >>>
 int*c = &%c%;
 <<<
   c = readKey()
-  array<nat32> movement = "hjlk+".toArray()
   IF C(*c == CTRL_KEY('q'))
-    clrscr()
-    EXIT 0
+    IF ec.fmodified > 0 && didquit > 0
+      warnUnsaved()
+      didquit--
+    ELSE
+      clrscr()
+      EXIT 0
+    }
+  ELSEIF C(*c == CTRL_KEY('o'))
+    string fname = prompt("/>.</ | -ESC to cancel- type a filename: ")
+    
+    IF fname == NIL
+      ec.setStatmsg("@.@ | ok, i get it, no file for me")
+      RETURN
+    }
+
+    IF ec.fmodified > 0 && didquit > 0
+      warnUnsaved()
+      didquit--
+    ELSE
+      ec.reset()
+      ec.open(fname)
+    }
+
+  ELSEIF C(*c == CTRL_KEY('w'))
+    IF ec.fmodified > 0 && didquit > 0
+      warnUnsaved()
+      didquit--
+    ELSE
+      ec.close()
+    }
   ELSE
+    array<nat32> movement = "hjlk+".toArray()
+    didquit = 1
     SWITCH c
       CASE '\r'
-        # TODO
-        BREAK
+        ec.insertNL()
+
+      CASE C(CTRL_KEY('f'))
+        ec.find()
+
+      CASE C(CTRL_KEY('g'))
+        string to = prompt("(o_O) | -ESC to cancel- Goto line: ")
+        IF to == NIL
+          ec.setStatmsg("(~____~) | nooooo, i want to teleport!")
+        }
+        int pos = to.toInt(1)
+        IF pos <= ec.n_erows
+          ec.cy = pos
+        ELSE
+          ec.setStatmsg("(X-x) | man... you cant go to that line, it's \(pos > ec.n_erows + 40 ? "waayyy" : "like...") outside of the file")
+        }
+
+      CASE C(CTRL_KEY('c'))
+        ec.setStatmsg("(*_*) | unlike vim, there's actually a NORMAL way to exit, try CTRL-Q")
 
       CASE C('\x1b')
         ec.mode = ec.mode == 'N' ? 'I' : 'N' 
@@ -462,8 +1003,7 @@ int*c = &%c%;
       CASE C(BACKSPACE); PROCEED
       CASE C(CTRL_KEY('h')); PROCEED
       CASE C(DEL)
-        # TODO
-        BREAK
+        ec.delChar()
 
       CASE C(CTRL_KEY('s'))
         ec.save()
@@ -539,7 +1079,44 @@ FUNC drawRows() string
       IF len >= ec.cols
         len = ec.cols - 1
       }
-      ab ..= ec.erows[n].render.slice(ec.coloff, ec.coloff + len)
+
+      int j = 0
+      int ccolor = -1
+      FOR c IN ec.erows[n].render.slice(ec.coloff, ec.coloff + len)
+        int hlval 
+>>>
+int*hlval = &%hlval%;
+<<<
+        int ch = c 
+>>>
+int*ch = &%ch%;
+<<<
+        hlval = ec.erows[n].hl[j]
+        IF iscntrl(c)
+          byte sym = C((ch <= 26) ? '@' + ch : '?')
+          ab ..= tcalls("m", ["7"])
+          ab ..= sym.asString()
+          ab ..= tcalls("m")
+          IF ccolor != -1
+            ab ..= tcalls("m", [ccolor.ToString()])
+          }
+        ELSEIF C(*hlval == HL_NORMAL)
+          IF ccolor != -1
+            ab ..= tcalls("m", ["39"])
+            ccolor = -1
+          }
+          ab ..= c.asString()
+        ELSE
+          int color = ec.getSynColor(hlval)
+          IF color != ccolor
+            ccolor = color
+            ab ..= tcalls("m", [color.ToString()])
+          }
+          ab ..= c.asString()
+        }
+        j++
+      }
+      ab ..= tcalls("m", ["39"])
     }
 
     ab ..= "\x1b[K"
@@ -551,12 +1128,12 @@ FUNC drawRows() string
 FUNC drawStatusBar() string
   string ab = ""
   
-  string barText = " \(ec.filename == NIL ? "[No Name]" : ec.filename.slice(0, 20)) - \(ec.n_erows) lines".slice(0, ec.cols - 1)
+  string barText = " \(ec.filename == NIL ? "[No Name]" : ec.filename.slice(0, 20))\(ec.fmodified > 0 ? "*" : "") - \(ec.n_erows) lines".slice(0, ec.cols - 1)
   
-  string statText = "<\(ec.mode.asString())>\(ec.cy + 1)|\(ec.n_erows)"
+  string statText = "<\(ec.mode.asString())> ft: \(ec.csyn != NIL ? ec.csyn.ft : "none") LINE:\(ec.cy + 1)/\(ec.n_erows + 1) | COLUMN:\(ec.cx + 1)"
   int statlen = statText.Size()
 
-  string welcome = " welcome to venci (^_^)/ |"
+  string welcome = " (^_^)/ |"
   IF barText.Size() + welcome.Size() < ec.cols - statlen
     barText = welcome .. barText
   }
@@ -581,13 +1158,15 @@ FUNC drawMsgBar() string
   string ab = ""
   ab ..= tcalls("K")
   int msglen = ec.statusmsg.Size()
-  IF msglen > 0 && TIME.current() - ec.statime < 5000
-    ab ..= ec.statusmsg.slice(0, ec.cols)
+  IF msglen > 0 && TIME.current() - ec.statime < 500000
+    ab ..= ec.statusmsg
   }
   RETURN ab
 }
 
 PROC refreshScreen()
+  ec.getWindowSize()
+  
   ec.scroll()
 
   string ab = ""
@@ -605,6 +1184,53 @@ PROC refreshScreen()
 >>> uses(getCstring)
   write(STDOUT_FILENO, ZgetCstring(%ab%), %ab.Size()%);
 <<<
+}
+
+FUNC prompt(string msg, proc<string, int> fn = NIL) string
+  string buf = ""
+  WHILE TRUE
+    ec.setStatmsg(msg, buf)
+    refreshScreen()
+
+    int c 
+>>>
+int*c = &%c%;
+<<<
+    c = readKey()
+
+    IF C(*c == DEL || *c == CTRL_KEY('h') || *c == BACKSPACE)
+      IF buf.Size() > 1
+        buf = buf.slice(0, buf.Size() - 2)
+      ELSE
+        buf = ""
+      }
+    }
+
+    IF C(*c == '\x1b')
+      ec.setStatmsg("")
+      IF fn != NIL
+        fn(buf, c)
+      }
+      RETURN NIL
+    }
+
+    IF C(*c == '\r')
+      IF buf.Size() > 0
+        ec.setStatmsg("")
+        IF fn != NIL
+          fn(buf, c)
+        }
+        BREAK
+      }
+    ELSEIF C(!iscntrl(*c) && *c < 128)
+      buf ..= c.asString()
+    }
+
+    IF fn != NIL
+      fn(buf, c)
+    }
+  }
+  RETURN buf
 }
 
 FUNC readKey() int
@@ -686,11 +1312,12 @@ FUNC Main() int
   IF ec.getWindowSize() != OK
     die("error getting window size")
   }
+
+  ec.setStatmsg("info: press Ctrl-Q to quit venci, press Ctrl-S to save")
+
   IF ARG.rawSize() > 0
     ec.open(ARG.getRawList()[0])
   }
-
-  ec.setStatmsg("info: press Ctrl-Q to quit venci, press Ctrl-S to save")
 
   WHILE TRUE
     refreshScreen()

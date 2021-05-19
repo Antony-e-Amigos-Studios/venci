@@ -1,4 +1,3 @@
 # venci
 
-<!--- project's description -->
-
+a text editor i'm working on
